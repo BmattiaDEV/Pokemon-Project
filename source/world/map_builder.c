@@ -1,6 +1,6 @@
 #include "map_builder.h"
 #include "map.h"
-#include "../../data/map/map_data.h"
+#include "../map/map_data.h"
 #include "../render/graphics.h" // Per poter chiamare addVert()
 
 typedef struct {
@@ -27,7 +27,6 @@ static void creaPareteVerticaleTexture(float x_inizio, float z_inizio, float x_f
 void costruisciMappa3D(void) {
     static const float bianco[3] = { 1.0f, 1.0f, 1.0f };
     
-    // La nostra Cache UV per le texture
     CacheRitagli cache[8];
     for (int i = 0; i < 8; i++) {
         int col = i % 2; 
@@ -47,28 +46,47 @@ void costruisciMappa3D(void) {
         for (int colonna_x = 0; colonna_x < MAP_W; colonna_x++) {
             float x_ovest = (float)colonna_x, x_est = x_ovest + 1.0f;
             float z_nord = (float)riga_z,     z_sud = z_nord + 1.0f;
-            float altezza_pavimento = getTileHeight(colonna_x, riga_z);
             
-            int id_texture = mapTypes[riga_z][colonna_x] - '0';
-            CacheRitagli uv = cache[id_texture]; 
+            // --- STRATO 1: TERRENO BASE ---
+            float y_terreno = getTerrainHeight(colonna_x, riga_z);
+            char tipo_terreno = mapTerrainTypes[riga_z][colonna_x];
+            int id_terreno = tipo_terreno - '0';
+            CacheRitagli uv_terreno = cache[id_terreno];
             
-            // Pavimento
-            const float punti_pavimento[4][3] = { { x_ovest, altezza_pavimento, z_nord }, { x_est, altezza_pavimento, z_nord }, { x_est, altezza_pavimento, z_sud }, { x_ovest, altezza_pavimento, z_sud } };
-            creaPianoOrizzontaleTexture(punti_pavimento, uv.u0, uv.v0, uv.u1, uv.v1, bianco);
+            const float punti_terreno[4][3] = { 
+                { x_ovest, y_terreno, z_nord }, { x_est, y_terreno, z_nord }, 
+                { x_est, y_terreno, z_sud }, { x_ovest, y_terreno, z_sud } 
+            };
+            creaPianoOrizzontaleTexture(punti_terreno, uv_terreno.u0, uv_terreno.v0, uv_terreno.u1, uv_terreno.v1, bianco);
 
-            // Muri (Texture '0' -> grass_1)
+            // --- STRATO 2: STRUTTURE (Se presenti) ---
+            char tipo_struttura = mapStructureTypes[riga_z][colonna_x];
+            if (tipo_struttura != '0') { // Se non è 0, c'è una decorazione!
+                float y_struttura = getStructureHeight(colonna_x, riga_z);
+                int id_struttura = tipo_struttura - '0';
+                CacheRitagli uv_struttura = cache[id_struttura];
+                
+                const float punti_struttura[4][3] = { 
+                    { x_ovest, y_struttura, z_nord }, { x_est, y_struttura, z_nord }, 
+                    { x_est, y_struttura, z_sud }, { x_ovest, y_struttura, z_sud } 
+                };
+                creaPianoOrizzontaleTexture(punti_struttura, uv_struttura.u0, uv_struttura.v0, uv_struttura.u1, uv_struttura.v1, bianco);
+            }
+
+            // --- MURI LATERALI (Basati sull'elevazione del terreno) ---
             CacheRitagli muro_uv = cache[0];
-            float alt_sud = getTileHeight(colonna_x, riga_z + 1);
-            creaPareteVerticaleTexture(x_ovest, z_sud, x_est, z_sud, alt_sud, altezza_pavimento, muro_uv.u0, muro_uv.v0, muro_uv.u1, muro_uv.v1, bianco);
             
-            float alt_nord = getTileHeight(colonna_x, riga_z - 1);
-            creaPareteVerticaleTexture(x_est, z_nord, x_ovest, z_nord, alt_nord, altezza_pavimento, muro_uv.u0, muro_uv.v0, muro_uv.u1, muro_uv.v1, bianco);
+            float alt_sud = getTerrainHeight(colonna_x, riga_z + 1);
+            creaPareteVerticaleTexture(x_ovest, z_sud, x_est, z_sud, alt_sud, y_terreno, muro_uv.u0, muro_uv.v0, muro_uv.u1, muro_uv.v1, bianco);
             
-            float alt_est = getTileHeight(colonna_x + 1, riga_z);
-            creaPareteVerticaleTexture(x_est, z_sud, x_est, z_nord, alt_est, altezza_pavimento, muro_uv.u0, muro_uv.v0, muro_uv.u1, muro_uv.v1, bianco);
+            float alt_nord = getTerrainHeight(colonna_x, riga_z - 1);
+            creaPareteVerticaleTexture(x_est, z_nord, x_ovest, z_nord, alt_nord, y_terreno, muro_uv.u0, muro_uv.v0, muro_uv.u1, muro_uv.v1, bianco);
             
-            float alt_ovest = getTileHeight(colonna_x - 1, riga_z);
-            creaPareteVerticaleTexture(x_ovest, z_nord, x_ovest, z_sud, alt_ovest, altezza_pavimento, muro_uv.u0, muro_uv.v0, muro_uv.u1, muro_uv.v1, bianco);
+            float alt_est = getTerrainHeight(colonna_x + 1, riga_z);
+            creaPareteVerticaleTexture(x_est, z_sud, x_est, z_nord, alt_est, y_terreno, muro_uv.u0, muro_uv.v0, muro_uv.u1, muro_uv.v1, bianco);
+            
+            float alt_ovest = getTerrainHeight(colonna_x - 1, riga_z);
+            creaPareteVerticaleTexture(x_ovest, z_nord, x_ovest, z_sud, alt_ovest, y_terreno, muro_uv.u0, muro_uv.v0, muro_uv.u1, muro_uv.v1, bianco);
         }
     }
 }

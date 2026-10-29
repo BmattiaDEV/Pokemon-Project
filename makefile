@@ -14,27 +14,22 @@ ROMFS		:=	romfs
 #---------------------------------------------------------------------------------
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
 
-CFLAGS	:=	-Wall -O2 -mword-relocations \
-			-fomit-frame-pointer -ffast-math \
-			$(ARCH)
-
-CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
+CFLAGS	:=	-Wall -O2 -mword-relocations -fomit-frame-pointer -ffast-math $(ARCH)
+CFLAGS	+=	$(INCLUDE) -D__3DS__
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
-
-ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
-
-LIBS	:= -lcitro3d -lctru -lm
+ASFLAGS		:= -g $(ARCH)
+LDFLAGS		= -specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+LIBS		:= -lcitro3d -lctru -lm
 
 #---------------------------------------------------------------------------------
-# Regole di devkitPro
+# Regole Base
 #---------------------------------------------------------------------------------
 include $(DEVKITARM)/base_rules
 include $(DEVKITARM)/3ds_rules
 
 #---------------------------------------------------------------------------------
-# Logica interna di Make
+# Logica di configurazione Make
 #---------------------------------------------------------------------------------
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 
@@ -44,22 +39,11 @@ export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 					$(foreach dir,$(DATA),$(CURDIR)/$(dir))
 export BUILDDIR	:=	$(CURDIR)/$(BUILD)
 
-CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-PICAFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.v.pica)))
-BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
-
-export OFILES_SOURCES := $(CFILES:.c=.o)
-export OFILES_BIN     := $(addsuffix .o,$(BINFILES)) $(PICAFILES:.v.pica=.shbin.o)
-export OFILES         := $(OFILES_BIN) $(OFILES_SOURCES)
-export HFILES         := $(PICAFILES:.v.pica=_shbin.h) $(addsuffix .h,$(subst .,_,$(BINFILES)))
-
 export LIBDIRS	:=	$(PORTLIBS) $(CTRULIB)
-
 export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 					$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
 					-I$(CURDIR)/$(BUILD)
-
-export LD	:=	$(CXX)
+export LD		:=	$(CXX)
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
 .PHONY: $(BUILD) clean all
@@ -76,22 +60,47 @@ $(BUILD):
 
 else
 
+#---------------------------------------------------------------------------------
+# Compilazione vera e propria (Dentro la cartella build)
+#---------------------------------------------------------------------------------
+CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(TOPDIR)/$(dir)/*.c)))
+PICAFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(TOPDIR)/$(dir)/*.v.pica)))
+BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(TOPDIR)/$(dir)/*.bin)))
+
+export OFILES_SOURCES := $(CFILES:.c=.o)
+export OFILES_BIN     := $(addsuffix .o,$(BINFILES)) $(PICAFILES:.v.pica=.shbin.o)
+export OFILES         := $(OFILES_BIN) $(OFILES_SOURCES)
+
+export HFILES         := $(PICAFILES:.v.pica=_shbin.h) $(addsuffix .h,$(subst .,_,$(BINFILES)))
+
 DEPENDS	:=	$(OFILES:.o=.d)
 
 $(OUTPUT).3dsx	:	$(OUTPUT).elf
 $(OUTPUT).elf	:	$(OFILES)
 
-# Forza la generazione dei file .h prima di compilare i sorgenti C
+# Regola d'oro: Genera texture e shader PRIMA del codice C
 $(OFILES_SOURCES) : $(HFILES)
 
-# Regola robusta per Picasso che usa percorsi relativi puliti
+# -----------------------------------------------------------------------------
+# REGOLE MANUALI BLINDATE ANTI-WINDOWS/MSYS
+# Senza l'uso di pipe complessi (|) o doppi apici (") che fanno impazzire la bash
+# -----------------------------------------------------------------------------
+
+# 1. Da Binario (.bin) a Oggetto (.bin.o) e Header (_bin.h)
+%.bin.o %_bin.h : %.bin
+	@echo "-> Convertendo l'immagine: $(notdir $<)"
+	@cp $< $(notdir $<)
+	@bin2s -H $*_bin.h $(notdir $<) > $*.s
+	@$(AS) -o $*.bin.o $*.s
+	@rm -f $*.s $(notdir $<)
+
+# 2. Da Shader PICA (.v.pica) a Oggetto (.shbin.o) e Header (_shbin.h)
 %.shbin.o %_shbin.h : %.v.pica
-	picasso -o $(notdir $*).shbin $(TOPDIR)/source/render/$(notdir $<)
-	bin2s $(notdir $*).shbin > $(notdir $*).s
-	$(AS) -o $*.shbin.o $(notdir $*).s
-	@echo "extern const u8 $(notdir $*)_shbin[];" > $*_shbin.h
-	@echo "extern const u32 $(notdir $*)_shbin_size;" >> $*_shbin.h
-	@rm -f $(notdir $*).shbin $(notdir $*).s
+	@echo "-> Compilando lo Shader: $(notdir $<)"
+	@picasso -o $*.shbin $<
+	@bin2s -H $*_shbin.h $*.shbin > $*.s
+	@$(AS) -o $*.shbin.o $*.s
+	@rm -f $*.s $*.shbin
 
 -include $(DEPENDS)
 

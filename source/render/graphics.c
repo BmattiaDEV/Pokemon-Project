@@ -100,36 +100,45 @@ void graphicsFree(void) {
     if (vbo) linearFree(vbo);
 }
 
-// --- RENDER DELL'OVERWORLD (Chiamato 60 volte al secondo nel loop) ---
+// RENDER STATICO DELLA MAPPA
 void graphicsRenderOverworld(C3D_RenderTarget* target, int uLoc_projection, int uLoc_modelView, int uLoc_uvoff, C3D_Mtx* projection, float wx, float wz, int tx, int ty, int frame) {
     
-    // Calcoliamo l'altezza Y del terreno su cui si trova il giocatore per puntare la telecamera
-    float current_y = getTileHeight(tx, ty); 
-    float cx = wx + 0.5f, cy = current_y + 0.5f, cz = wz + 0.5f;
+    // 1. Coordinate fisse per inquadrare tutta la mappa (16x12)
+    float cx = 8.0f;  // Centro mappa (X)
+    float cy = 0.0f;  // Altezza pavimento
+    float cz = 6.0f;  // Centro mappa (Z)
 
-    // Creazione della matrice di vista (Telecamera)
     C3D_Mtx view;
     Mtx_Identity(&view);
-    Mtx_Translate(&view, 0.0f, 0.0f, -9.0f, true); // Distanza camera (CAM_DIST)
-    Mtx_RotateX(&view, C3D_AngleFromDegrees(50.0f), true); // Inclinazione (CAM_PITCH)
-    Mtx_Translate(&view, -cx, -cy, -cz, true);
+    Mtx_Translate(&view, 0.0f, 0.0f, -22.0f, true); // Allontana la telecamera per vederla tutta
+    Mtx_RotateX(&view, C3D_AngleFromDegrees(45.0f), true); // Inclinata dall'alto
+    Mtx_Translate(&view, -cx, -cy, -cz, true); // Punta al centro
 
-    // Pulizia dello schermo e attivazione del target superiore del 3DS
+// 2. Pulizia Schermo
     C3D_RenderTargetClear(target, C3D_CLEAR_ALL, 0x202838FF, 0);
     C3D_FrameDrawOn(target);
     
-    // Attivazione del test di profondità (Z-Buffer) e della proiezione 3D
-    C3D_DepthTest(true, GPU_GREATER, GPU_WRITE_ALL);
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_projection, projection);
+    // Mostra tutte le facce
+    C3D_CullFace(GPU_CULL_NONE);
+    C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
 
-    // Applichiamo la texture del tileset
-    useTexture();
-    C3D_TexBind(0, &outdoorTex);
+    // --- NUOVO: ATTIVA LA TRASPARENZA (Alpha Blending) ---
+    C3D_AlphaBlend(GPU_BLEND_ADD, GPU_BLEND_ADD, GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA, GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA);
+    C3D_AlphaTest(true, GPU_GREATER, 0); // Scarta i pixel invisibili
     
-    // Inviamo la matrice di vista allo shader
+    // LA RIGA MAGICA: Disabilita il face culling per far apparire i pavimenti
+    C3D_CullFace(GPU_CULL_NONE);
+    
+    // Assicurati che il test di profondità sia GEQUAL per evitare sfarfallii
+    C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
+    
+    // 3. Setup Shaders
+    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_projection, projection);
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_modelView, &view);
     C3D_FVUnifSet(GPU_VERTEX_SHADER, uLoc_uvoff, 0.0f, 0.0f, 0.0f, 0.0f);
     
-    // DISEGNO DELLA MAPPA INTERA CON UN UNICO COMANDO ALLA GPU!
+    // 4. Render
+    useTexture();
+    C3D_TexBind(0, &outdoorTex);
     C3D_DrawArrays(GPU_TRIANGLES, 0, mapVertCount);
 }

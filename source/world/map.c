@@ -1,36 +1,32 @@
 #include "map.h"
-#include "../../data/map/map_data.h"
+#include "../map/map_data.h"
 
-// Restituisce l'altezza reale in 3D di una specifica casella
-float getTileHeight(int x, int z) {
+// Restituisce l'altezza 3D del terreno base
+float getTerrainHeight(int x, int z) {
     if (x < 0 || x >= MAP_W || z < 0 || z >= MAP_H) return 3.0f * BLOCK_UNIT; 
-    return mapElevations[z][x] * BLOCK_UNIT;
+    return mapTerrainElevations[z][x] * BLOCK_UNIT;
 }
 
-// Ritorna il livello di elevazione grezzo (1 = terra, 2 = collina, 3 = muro)
-int mapHeight(int x, int z) {
-    if (x < 0 || x >= MAP_W || z < 0 || z >= MAP_H) return 3; 
-    return mapElevations[z][x];
+// Restituisce l'altezza 3D della struttura (leggermente rialzata per gestire la sovrapposizione)
+float getStructureHeight(int x, int z) {
+    if (x < 0 || x >= MAP_W || z < 0 || z >= MAP_H) return 3.0f * BLOCK_UNIT; 
+    return (mapStructureElevations[z][x] * BLOCK_UNIT) + 0.01f;
 }
 
-// COLLISIONI: Il giocatore sbatte contro qualcosa?
+// COLLISIONI
 int isBlocked(int x, int z) {
     if (x < 0 || x >= MAP_W || z < 0 || z >= MAP_H) return 1; 
     
-    int tile_elevation = mapElevations[z][x];
-    
-    // Blocchiamo il giocatore SOLO se prova ad andare sui bordi esterni (>= 3)
-    if (tile_elevation >= 3) {
+    // Blocchiamo il giocatore se sbatte contro i bordi del terreno base
+    if (mapTerrainElevations[z][x] >= 3) {
         return 1;
     }
-    
-    return 0; // Libero di muoversi ovunque (livelli 1 e 2)!
+    return 0; // Libero
 }
 
 // ERBA SELVATICA (Encounter)
 int isGrass(int x, int z) {
     if (x < 0 || x >= MAP_W || z < 0 || z >= MAP_H) return 0;
     
-    // '1' rappresenta l'erba alta
-    return mapTypes[z][x] == '1';
+    return mapTerrainTypes[z][x] == '1';
 }
