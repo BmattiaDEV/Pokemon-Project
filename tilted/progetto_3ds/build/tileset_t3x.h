@@ -6,7 +6,7 @@
 extern const uint8_t tileset_t3x[];
 extern const uint8_t tileset_t3x_end[];
 #if __cplusplus >= 201103L
-static constexpr size_t tileset_t3x_size=7005;
+static constexpr size_t tileset_t3x_size=7933;
 #else
-static const size_t tileset_t3x_size=7005;
+static const size_t tileset_t3x_size=7933;
 #endif

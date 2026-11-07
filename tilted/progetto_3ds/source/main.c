@@ -24,19 +24,19 @@
 #error "I livelli della mappa superano il range supportato [-32, 32]."
 #endif
 
-// Costanti del Tileset (outdoor.png: 128x256, 4x8 blocchi da 32x32)
-#define TILESET_COLS 4
-#define TILESET_ROWS 8
+// Costanti del Tileset (outdoor.png: 128x256, 8x16 blocchi da 16x16)
+#define TILESET_COLS 8
+#define TILESET_ROWS 16
 #define TOTAL_TILES  (TILESET_COLS * TILESET_ROWS)
-#define TILE_W 32.0f
-#define TILE_H 32.0f
+#define TILE_W 16.0f
+#define TILE_H 16.0f
 #define TEX_W (TILESET_COLS * TILE_W) // 128.0f
 #define TEX_H (TILESET_ROWS * TILE_H) // 256.0f
 
 // Configurazione angolo telecamera e altezza per singolo livello
 #define CAM_ANGLE_DEG 45.0f  // Angolo di inclinazione della telecamera (in gradi)
 #define CAM_DIST      280.0f // Distanza della telecamera dal centro della mappa
-#define LEVEL_HEIGHT  16.0f  // Dislivello per ogni piano (livello L => quota L * LEVEL_HEIGHT)
+#define LEVEL_HEIGHT  12.0f  // Dislivello per ogni piano (livello L => quota L * LEVEL_HEIGHT)
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
@@ -60,16 +60,19 @@ static C3D_RenderTarget* topScreen;
 static TileVertex* vbo_data = NULL;
 static u32 vbo_count = 0;
 
-// Restituisce true se il tile è un elemento piatto che si appoggia al terreno (fiori 4..5 o path 20..30)
+// Restituisce true se il tile è un elemento piatto che si appoggia al terreno
+// (sassolini/fiori 16..27 o sentieri/incroci/piazzole 73..117)
 static bool isOverlayTile(int tile_id) {
-    return (tile_id == 4 || tile_id == 5 || (tile_id >= 20 && tile_id <= 30));
+    return ((tile_id >= 16 && tile_id <= 27) ||
+            (tile_id >= 73 && tile_id <= 117));
 }
 
-// Restituisce true se il tile è un bordo roccioso/parete della montagna (8..18 eccetto il centro 13)
+// Restituisce true se il tile è un bordo roccioso/parete della montagna (blocco 4x4: 41..68 eccetto il centro 50,51,58,59)
 static bool isCliffBorderTile(int tile_id) {
-    return (tile_id == 8  || tile_id == 9  || tile_id == 10 ||
-            tile_id == 12 || tile_id == 14 ||
-            tile_id == 16 || tile_id == 17 || tile_id == 18);
+    return (tile_id == 41 || tile_id == 42 || tile_id == 43 || tile_id == 44 ||
+            tile_id == 49 || tile_id == 52 ||
+            tile_id == 57 || tile_id == 60 ||
+            tile_id == 65 || tile_id == 66 || tile_id == 67 || tile_id == 68);
 }
 
 // Legge in sicurezza il tile grezzo dal livello `level` (tra MAP_GEN_MIN_LEVEL e MAP_GEN_MAX_LEVEL)
@@ -100,24 +103,26 @@ static bool hasTerrainAbove(int level, int x, int y) {
     return false;
 }
 
-// Restituisce il tile effettivo da disegnare al livello `level`, riempiendo con erba (0)
+// Restituisce il tile effettivo da disegnare al livello `level`, riempiendo con erba
 // eventuali buchi (-1) sotto i bordi della montagna o sotto gli overlay del livello successivo
 static int getEffectiveTile(int level, int x, int y) {
     int tid = getRawTile(level, x, y);
     if (tid != -1) return tid;
 
+    int grass_fill = ((y % 2) * 8) + (x % 2); // 0, 1, 8, 9 (pattern 2x2 dell'erba chiara)
+
     // Sul piano base (0 o il livello minimo della mappa), manteniamo il terreno continuo
     // se un livello superiore disegna qualcosa sopra questa cella
     int base_ground_level = (0 >= MAP_GEN_MIN_LEVEL && 0 <= MAP_GEN_MAX_LEVEL) ? 0 : MAP_GEN_MIN_LEVEL;
     if (level == base_ground_level && hasTileAbove(level, x, y)) {
-        return 0;
+        return grass_fill;
     }
 
-    // Se il livello immediatamente superiore ha un bordo roccioso (metà trasparente) o un overlay,
+    // Se il livello immediatamente superiore ha un bordo roccioso o un overlay,
     // garantiamo una base d'erba piatta su questo livello
     int above = getRawTile(level + 1, x, y);
     if (above != -1 && (isCliffBorderTile(above) || isOverlayTile(above))) {
-        return 0;
+        return grass_fill;
     }
 
     return -1;
@@ -136,16 +141,20 @@ static bool doesCellRaiseCorner(int level, int cx, int cy, int corner_dx, int co
     }
 
     switch (tid) {
-        case 8:  return (corner_dx == 1 && corner_dy == 1); // Top-Left cliff: alza solo BR
-        case 9:  return (corner_dy == 1);                   // Top cliff: alza BL, BR
-        case 10: return (corner_dx == 0 && corner_dy == 1); // Top-Right cliff: alza solo BL
-        case 12: return (corner_dx == 1);                   // Left cliff: alza TR, BR
-        case 14: return (corner_dx == 0);                   // Right cliff: alza TL, BL
-        case 16: return (corner_dx == 1 && corner_dy == 0); // Bottom-Left cliff: alza solo TR
-        case 17: return (corner_dy == 0);                   // Bottom cliff: alza TL, TR
-        case 18: return (corner_dx == 0 && corner_dy == 0); // Bottom-Right cliff: alza solo TL
+        case 41: return (corner_dx == 1 && corner_dy == 1); // Top-Left cliff: alza solo BR
+        case 42:
+        case 43: return (corner_dy == 1);                   // Top cliff: alza BL, BR
+        case 44: return (corner_dx == 0 && corner_dy == 1); // Top-Right cliff: alza solo BL
+        case 49:
+        case 57: return (corner_dx == 1);                   // Left cliff: alza TR, BR
+        case 52:
+        case 60: return (corner_dx == 0);                   // Right cliff: alza TL, BL
+        case 65: return (corner_dx == 1 && corner_dy == 0); // Bottom-Left cliff: alza solo TR
+        case 66:
+        case 67: return (corner_dy == 0);                   // Bottom cliff: alza TL, TR
+        case 68: return (corner_dx == 0 && corner_dy == 0); // Bottom-Right cliff: alza solo TL
         default:
-            // Qualsiasi altro tile di terreno (es. erba 0, 1, 13) è piatto alla quota del proprio livello
+            // Qualsiasi altro tile di terreno (es. erba 0..11, centro montagna 50,51,58,59) è piatto alla quota del livello
             return true;
     }
 }
@@ -178,10 +187,10 @@ static void buildMapBuffer(void) {
     vbo_count = 0;
     if (!vbo_data) return;
 
-    float half_w = TILE_W * 0.5f; // 16.0f
-    float half_h = TILE_H * 0.5f; // 16.0f
+    float half_w = TILE_W * 0.5f; // 8.0f
+    float half_h = TILE_H * 0.5f; // 8.0f
 
-    // Centriamo la mappa attorno a (0, 0, 0)
+    // Centriamo la mappa 16x16 attorno a (0, 0, 0)
     float map_half_w = (MAP_GEN_W * TILE_W) * 0.5f;
     float map_half_d = (MAP_GEN_H * TILE_H) * 0.5f;
 
@@ -193,7 +202,7 @@ static void buildMapBuffer(void) {
                     continue;
                 }
 
-                // Coordinate X e Z di base del tile 32x32
+                // Coordinate X e Z del tile 16x16
                 float cx = ((float)x * TILE_W + half_w) - map_half_w;
                 float cz = ((float)y * TILE_H + half_h) - map_half_d;
 
@@ -202,7 +211,7 @@ static void buildMapBuffer(void) {
                 float z_top   = cz - half_h;
                 float z_bot   = cz + half_h;
 
-                // Coordinate UV di base del tile 32x32
+                // Coordinate UV del tile 16x16
                 int col = tile_id % TILESET_COLS;
                 int row = tile_id / TILESET_COLS;
 
@@ -217,32 +226,6 @@ static void buildMapBuffer(void) {
                 float y_tr = getCornerHeight(height_level, x + 1, y);
                 float y_br = getCornerHeight(height_level, x + 1, y + 1);
                 float y_bl = getCornerHeight(height_level, x,     y + 1);
-
-                // Nei tile dei bordi della montagna (8..18), la roccia in outdoor.png
-                // occupa solo la metà interna (16px) del tile, mentre i 16px esterni
-                // sono trasparenti. Ritagliamo la metà trasparente esterna così la
-                // base della roccia tocca direttamente la quota del livello sottostante!
-                if (isCliffBorderTile(tile_id)) {
-                    float u_mid = (u_left + u_right) * 0.5f;
-                    float v_mid = (v_top + v_bottom) * 0.5f;
-
-                    if (tile_id == 8 || tile_id == 12 || tile_id == 16) {
-                        x_left = cx;
-                        u_left = u_mid;
-                    }
-                    if (tile_id == 10 || tile_id == 14 || tile_id == 18) {
-                        x_right = cx;
-                        u_right = u_mid;
-                    }
-                    if (tile_id == 8 || tile_id == 9 || tile_id == 10) {
-                        z_top = cz;
-                        v_top = v_mid;
-                    }
-                    if (tile_id == 16 || tile_id == 17 || tile_id == 18) {
-                        z_bot = cz;
-                        v_bottom = v_mid;
-                    }
-                }
 
                 // Scegliamo la diagonale del quad in modo simmetrico sugli angoli della montagna
                 // (funziona a qualsiasi quota da -32 a +32)
