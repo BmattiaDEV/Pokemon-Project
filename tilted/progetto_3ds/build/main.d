@@ -1,4 +1,4 @@
-main.o: C:/tilted/progetto_3ds/source/main.c \
+main.o: C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/main.c \
  C:/devkitPro/libctru/include/3ds.h \
  C:/devkitPro/libctru/include/3ds/types.h \
  C:/devkitPro/libctru/include/3ds/result.h \
@@ -104,9 +104,9 @@ main.o: C:/tilted/progetto_3ds/source/main.c \
  C:/devkitPro/libctru/include/c3d/framebuffer.h \
  C:/devkitPro/libctru/include/c3d/renderqueue.h \
  C:/devkitPro/libctru/include/tex3ds.h \
- C:/tilted/progetto_3ds/source/map_data.h \
- C:/tilted/progetto_3ds/build/vshader_shbin.h \
- C:/tilted/progetto_3ds/build/tileset_t3x.h
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/map_data.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/vshader_shbin.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/tileset_t3x.h
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
@@ -212,6 +212,6 @@ C:/devkitPro/libctru/include/c3d/fog.h:
 C:/devkitPro/libctru/include/c3d/framebuffer.h:
 C:/devkitPro/libctru/include/c3d/renderqueue.h:
 C:/devkitPro/libctru/include/tex3ds.h:
-C:/tilted/progetto_3ds/source/map_data.h:
-C:/tilted/progetto_3ds/build/vshader_shbin.h:
-C:/tilted/progetto_3ds/build/tileset_t3x.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/map_data.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/vshader_shbin.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/tileset_t3x.h:

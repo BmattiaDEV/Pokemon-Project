@@ -23,7 +23,15 @@ else:
 OUTPUT = CARTELLA_PROGETTO / "source" / "map_data.h"
 
 VUOTO = -1   # cella senza tile nei CSV di Tiled
-PATTERN = re.compile(r"altezza_(\d+)", re.IGNORECASE)
+MIN_LIVELLO = -32
+MAX_LIVELLO = 32
+MAX_LIVELLI_TOTALI = 65  # Supporta l'intero range da -32 a +32 (64 dislivelli)
+PATTERN = re.compile(r"altezza_(-?\d+)", re.IGNORECASE)
+
+
+def nome_array_livello(n: int) -> str:
+    """Restituisce un identificatore C valido per il livello n (es. mapAltezza0, mapAltezza_neg1)."""
+    return f"mapAltezza_neg{abs(n)}" if n < 0 else f"mapAltezza{n}"
 
 
 def trova_livelli():
@@ -37,6 +45,11 @@ def trova_livelli():
         if not m:
             continue
         n = int(m.group(1))
+        if n < MIN_LIVELLO or n > MAX_LIVELLO:
+            sys.exit(
+                f"Errore: il livello {n} ({file.name}) è fuori dal range consentito "
+                f"[{MIN_LIVELLO}, {MAX_LIVELLO}]."
+            )
         if n in livelli:
             sys.exit(
                 f"Errore: due file per l'altezza {n}: "
@@ -46,14 +59,20 @@ def trova_livelli():
 
     if not livelli:
         sys.exit(f"Errore: nessun file altezza_N.csv trovato in {CARTELLA_INPUT}")
-    if 0 not in livelli:
-        sys.exit("Errore: manca altezza_0.csv")
 
-    # I livelli devono essere consecutivi: 0, 1, 2, ...
-    attesi = set(range(max(livelli) + 1))
+    if len(livelli) > MAX_LIVELLI_TOTALI:
+        sys.exit(
+            f"Errore: trovati {len(livelli)} livelli, il massimo supportato è {MAX_LIVELLI_TOTALI} "
+            f"({MIN_LIVELLO} -> {MAX_LIVELLO})."
+        )
+
+    # I livelli devono essere consecutivi da min(livelli) a max(livelli)
+    liv_min = min(livelli)
+    liv_max = max(livelli)
+    attesi = set(range(liv_min, liv_max + 1))
     mancanti = attesi - set(livelli)
     if mancanti:
-        sys.exit(f"Errore: mancano i livelli: {sorted(mancanti)}")
+        sys.exit(f"Errore: mancano i livelli intermedi: {sorted(mancanti)}")
 
     return dict(sorted(livelli.items()))
 
@@ -94,14 +113,19 @@ def main():
     livelli = trova_livelli()
     griglie = {n: leggi(percorso) for n, percorso in livelli.items()}
 
-    h = len(griglie[0])
-    w = len(griglie[0][0])
+    primo_livello = next(iter(livelli))
+    h = len(griglie[primo_livello])
+    w = len(griglie[primo_livello][0])
     for n, g in griglie.items():
         if len(g) != h or len(g[0]) != w:
             sys.exit(
                 f"Errore: altezza_{n} è {len(g[0])}x{len(g)} "
-                f"ma altezza_0 è {w}x{h}"
+                f"ma altezza_{primo_livello} è {w}x{h}"
             )
+
+    liv_min = min(livelli)
+    liv_max = max(livelli)
+    num_livelli = len(livelli)
 
     blocchi = [
         "#pragma once",
@@ -109,17 +133,29 @@ def main():
         "// Generato automaticamente da converti_mappa.py. Non modificare a mano.",
         "//",
         f"// Convenzione: {VUOTO} = cella vuota, ogni altro valore = ID tile valido.",
-        "// I tile dello stesso livello sono raggruppati in mapAltezzaN.",
+        f"// Range altezze supportato: [{MIN_LIVELLO}, {MAX_LIVELLO}].",
         "",
+        f"#define MAP_ABS_MIN_LEVEL ({MIN_LIVELLO})",
+        f"#define MAP_ABS_MAX_LEVEL ({MAX_LIVELLO})",
         f"#define MAP_GEN_W {w}",
         f"#define MAP_GEN_H {h}",
-        f"#define MAP_GEN_MAX_LEVEL {max(livelli)}",
+        f"#define MAP_GEN_MIN_LEVEL ({liv_min})",
+        f"#define MAP_GEN_MAX_LEVEL ({liv_max})",
+        f"#define MAP_GEN_NUM_LEVELS {num_livelli}",
         "",
     ]
 
     for n in livelli:
         blocchi.append(f"// Tile del livello {n} (altezza_{n}.csv), {VUOTO} = vuoto")
-        blocchi.append(tabella(f"mapAltezza{n}", griglie[n]))
+        blocchi.append(tabella(nome_array_livello(n), griglie[n]))
+
+    puntatori = ",\n".join(f"    {nome_array_livello(n)}" for n in livelli)
+    blocchi.append("// Tabella indicizzata per (level - MAP_GEN_MIN_LEVEL)")
+    blocchi.append(
+        f"static const int (* const mapLevels[MAP_GEN_NUM_LEVELS])[MAP_GEN_W] __attribute__((unused)) = {{\n"
+        f"{puntatori}\n"
+        f"}};\n"
+    )
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text("\n".join(blocchi), encoding="utf-8")

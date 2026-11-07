@@ -3,11 +3,15 @@
 // Generato automaticamente da converti_mappa.py. Non modificare a mano.
 //
 // Convenzione: -1 = cella vuota, ogni altro valore = ID tile valido.
-// I tile dello stesso livello sono raggruppati in mapAltezzaN.
+// Range altezze supportato: [-32, 32].
 
+#define MAP_ABS_MIN_LEVEL (-32)
+#define MAP_ABS_MAX_LEVEL (32)
 #define MAP_GEN_W 8
 #define MAP_GEN_H 8
-#define MAP_GEN_MAX_LEVEL 2
+#define MAP_GEN_MIN_LEVEL (0)
+#define MAP_GEN_MAX_LEVEL (2)
+#define MAP_GEN_NUM_LEVELS 3
 
 // Tile del livello 0 (altezza_0.csv), -1 = vuoto
 static const int mapAltezza0[MAP_GEN_H][MAP_GEN_W] __attribute__((unused)) = {
@@ -43,4 +47,11 @@ static const int mapAltezza2[MAP_GEN_H][MAP_GEN_W] __attribute__((unused)) = {
     {-1,-1,-1,-1,-1,-1,-1,-1},
     {-1,-1,-1,-1,-1,-1,-1,-1},
     {-1,-1,-1,-1,-1,-1,-1,-1}
+};
+
+// Tabella indicizzata per (level - MAP_GEN_MIN_LEVEL)
+static const int (* const mapLevels[MAP_GEN_NUM_LEVELS])[MAP_GEN_W] __attribute__((unused)) = {
+    mapAltezza0,
+    mapAltezza1,
+    mapAltezza2
 };

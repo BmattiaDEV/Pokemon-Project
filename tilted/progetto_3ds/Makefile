@@ -88,6 +88,16 @@ all: $(BUILD)
 
 $(BUILD):
 	@[ -d $@ ] || mkdir -p $@
+	@for d in $@/*.d; do \
+		if [ -f "$$d" ]; then \
+			src=$$(sed -n '1s/^[^:]*: *\([^ \\]*\).*/\1/p' "$$d"); \
+			if [ -n "$$src" ] && [ ! -f "$$src" ]; then \
+				echo "Percorso del progetto cambiato, pulizia file di build obsoleti..."; \
+				rm -f $@/*.d $@/*.o; \
+				break; \
+			fi; \
+		fi; \
+	done
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 #---------------------------------------------------------------------------------

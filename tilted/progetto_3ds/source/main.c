@@ -15,18 +15,28 @@
      GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
      GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO))
 
+// Limiti dei livelli d'altezza (-32 -> +32, fino a 64 dislivelli / 65 livelli)
+#define MIN_HEIGHT_LEVEL (-32)
+#define MAX_HEIGHT_LEVEL (32)
+#define MAX_HEIGHT_LAYERS 65
+
+#if (MAP_GEN_MIN_LEVEL < MIN_HEIGHT_LEVEL) || (MAP_GEN_MAX_LEVEL > MAX_HEIGHT_LEVEL)
+#error "I livelli della mappa superano il range supportato [-32, 32]."
+#endif
+
 // Costanti del Tileset (outdoor.png: 128x256, 4x8 blocchi da 32x32)
 #define TILESET_COLS 4
 #define TILESET_ROWS 8
+#define TOTAL_TILES  (TILESET_COLS * TILESET_ROWS)
 #define TILE_W 32.0f
 #define TILE_H 32.0f
 #define TEX_W (TILESET_COLS * TILE_W) // 128.0f
 #define TEX_H (TILESET_ROWS * TILE_H) // 256.0f
 
-// Configurazione angolo telecamera e altezza montagna
+// Configurazione angolo telecamera e altezza per singolo livello
 #define CAM_ANGLE_DEG 45.0f  // Angolo di inclinazione della telecamera (in gradi)
 #define CAM_DIST      280.0f // Distanza della telecamera dal centro della mappa
-#define LEVEL_HEIGHT  16.0f  // Altezza della montagna (puoi metterla anche a 50.0f)
+#define LEVEL_HEIGHT  16.0f  // Dislivello per ogni piano (livello L => quota L * LEVEL_HEIGHT)
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
@@ -50,81 +60,137 @@ static C3D_RenderTarget* topScreen;
 static TileVertex* vbo_data = NULL;
 static u32 vbo_count = 0;
 
-// Restituisce true se il tile è un elemento piatto che si appoggia allo slot (fiori 4..5 o path 20..30)
+// Restituisce true se il tile è un elemento piatto che si appoggia al terreno (fiori 4..5 o path 20..30)
 static bool isOverlayTile(int tile_id) {
     return (tile_id == 4 || tile_id == 5 || (tile_id >= 20 && tile_id <= 30));
 }
 
-// Controlla se una cella è circondata o adiacente a tile del path (20..30)
-static bool isAdjacentToPath(int cx, int cy) {
-    for (int dy = -1; dy <= 1; ++dy) {
-        for (int dx = -1; dx <= 1; ++dx) {
-            int nx = cx + dx;
-            int ny = cy + dy;
-            if (nx >= 0 && nx < MAP_GEN_W && ny >= 0 && ny < MAP_GEN_H) {
-                int tid = mapAltezza1[ny][nx];
-                if (tid >= 20 && tid <= 30) {
-                    return true;
-                }
-            }
+// Restituisce true se il tile è un bordo roccioso/parete della montagna (8..18 eccetto il centro 13)
+static bool isCliffBorderTile(int tile_id) {
+    return (tile_id == 8  || tile_id == 9  || tile_id == 10 ||
+            tile_id == 12 || tile_id == 14 ||
+            tile_id == 16 || tile_id == 17 || tile_id == 18);
+}
+
+// Legge in sicurezza il tile grezzo dal livello `level` (tra MAP_GEN_MIN_LEVEL e MAP_GEN_MAX_LEVEL)
+static int getRawTile(int level, int x, int y) {
+    if (level < MAP_GEN_MIN_LEVEL || level > MAP_GEN_MAX_LEVEL) return -1;
+    if (x < 0 || x >= MAP_GEN_W || y < 0 || y >= MAP_GEN_H) return -1;
+    return mapLevels[level - MAP_GEN_MIN_LEVEL][y][x];
+}
+
+// Controlla se esiste un tile valido a qualsiasi livello superiore a `level` nella cella (x, y)
+static bool hasTileAbove(int level, int x, int y) {
+    for (int l = level + 1; l <= MAP_GEN_MAX_LEVEL; ++l) {
+        if (getRawTile(l, x, y) != -1) {
+            return true;
         }
     }
     return false;
 }
 
-// Restituisce true solo se la cella (cx, cy) è la cima rialzata della montagna
-static bool isCellRaised(int cx, int cy) {
-    if (cx < 0 || cx >= MAP_GEN_W || cy < 0 || cy >= MAP_GEN_H) return false;
-    int t1 = mapAltezza1[cy][cx];
-    if (t1 == -1 || isOverlayTile(t1) || isAdjacentToPath(cx, cy)) {
-        return false;
+// Controlla se esiste un tile di terreno/montagna (non-overlay) sopra `level` nella cella (x, y)
+static bool hasTerrainAbove(int level, int x, int y) {
+    for (int l = level + 1; l <= MAP_GEN_MAX_LEVEL; ++l) {
+        int t = getRawTile(l, x, y);
+        if (t != -1 && !isOverlayTile(t)) {
+            return true;
+        }
     }
-    return (mapAltezza0[cy][cx] == -1);
+    return false;
 }
 
-// Calcola l'altezza Y di un vertice (gx, gy) SOLO per il livello 1
-static float getCornerHeight(int gx, int gy) {
-    if (isCellRaised(gx - 1, gy - 1) ||
-        isCellRaised(gx,     gy - 1) ||
-        isCellRaised(gx - 1, gy)     ||
-        isCellRaised(gx,     gy)) {
-        return LEVEL_HEIGHT;
+// Restituisce il tile effettivo da disegnare al livello `level`, riempiendo con erba (0)
+// eventuali buchi (-1) sotto i bordi della montagna o sotto gli overlay del livello successivo
+static int getEffectiveTile(int level, int x, int y) {
+    int tid = getRawTile(level, x, y);
+    if (tid != -1) return tid;
+
+    // Sul piano base (0 o il livello minimo della mappa), manteniamo il terreno continuo
+    // se un livello superiore disegna qualcosa sopra questa cella
+    int base_ground_level = (0 >= MAP_GEN_MIN_LEVEL && 0 <= MAP_GEN_MAX_LEVEL) ? 0 : MAP_GEN_MIN_LEVEL;
+    if (level == base_ground_level && hasTileAbove(level, x, y)) {
+        return 0;
     }
-    return 0.0f;
+
+    // Se il livello immediatamente superiore ha un bordo roccioso (metà trasparente) o un overlay,
+    // garantiamo una base d'erba piatta su questo livello
+    int above = getRawTile(level + 1, x, y);
+    if (above != -1 && (isCliffBorderTile(above) || isOverlayTile(above))) {
+        return 0;
+    }
+
+    return -1;
+}
+
+// Determina se la cella (cx, cy) sul livello `level` solleva il proprio angolo (corner_dx, corner_dy)
+// dove corner_dx in {0=left, 1=right} e corner_dy in {0=top, 1=bottom}
+static bool doesCellRaiseCorner(int level, int cx, int cy, int corner_dx, int corner_dy) {
+    if (cx < 0 || cx >= MAP_GEN_W || cy < 0 || cy >= MAP_GEN_H) return false;
+
+    int tid = getRawTile(level, cx, cy);
+    if (tid == -1 || isOverlayTile(tid)) {
+        // Se la cella è stata lasciata vuota (-1) perché sopra c'è un ulteriore livello di montagna,
+        // fa comunque parte dell'altopiano interno di questo livello
+        return hasTerrainAbove(level, cx, cy);
+    }
+
+    switch (tid) {
+        case 8:  return (corner_dx == 1 && corner_dy == 1); // Top-Left cliff: alza solo BR
+        case 9:  return (corner_dy == 1);                   // Top cliff: alza BL, BR
+        case 10: return (corner_dx == 0 && corner_dy == 1); // Top-Right cliff: alza solo BL
+        case 12: return (corner_dx == 1);                   // Left cliff: alza TR, BR
+        case 14: return (corner_dx == 0);                   // Right cliff: alza TL, BL
+        case 16: return (corner_dx == 1 && corner_dy == 0); // Bottom-Left cliff: alza solo TR
+        case 17: return (corner_dy == 0);                   // Bottom cliff: alza TL, TR
+        case 18: return (corner_dx == 0 && corner_dy == 0); // Bottom-Right cliff: alza solo TL
+        default:
+            // Qualsiasi altro tile di terreno (es. erba 0, 1, 13) è piatto alla quota del proprio livello
+            return true;
+    }
+}
+
+// Calcola l'altezza Y del vertice di griglia (gx, gy) per un dato livello `level` (da -32 a +32)
+static float getCornerHeight(int level, int gx, int gy) {
+    if (doesCellRaiseCorner(level, gx - 1, gy - 1, 1, 1) ||
+        doesCellRaiseCorner(level, gx,     gy - 1, 0, 1) ||
+        doesCellRaiseCorner(level, gx - 1, gy,     1, 0) ||
+        doesCellRaiseCorner(level, gx,     gy,     0, 0)) {
+        return (float)level * LEVEL_HEIGHT;
+    }
+    return (float)(level - 1) * LEVEL_HEIGHT;
+}
+
+// Trova il livello del terreno su cui poggia un tile overlay (fiori/path) posto sul layer `level`
+static int getOverlayBaseLevel(int level, int x, int y) {
+    for (int l = level - 1; l >= MAP_GEN_MIN_LEVEL; --l) {
+        int t = getEffectiveTile(l, x, y);
+        if (t != -1 && !isOverlayTile(t)) {
+            return l;
+        }
+    }
+    return level;
 }
 
 static void buildMapBuffer(void) {
-    int max_tiles = MAP_GEN_W * MAP_GEN_H * (MAP_GEN_MAX_LEVEL + 1);
+    int max_tiles = MAP_GEN_W * MAP_GEN_H * MAP_GEN_NUM_LEVELS;
     vbo_data = (TileVertex*)linearAlloc(max_tiles * 6 * sizeof(TileVertex));
     vbo_count = 0;
+    if (!vbo_data) return;
 
     float half_w = TILE_W * 0.5f; // 16.0f
     float half_h = TILE_H * 0.5f; // 16.0f
 
-    // Centriamo la mappa 8x8 attorno a (0, 0, 0)
+    // Centriamo la mappa attorno a (0, 0, 0)
     float map_half_w = (MAP_GEN_W * TILE_W) * 0.5f;
     float map_half_d = (MAP_GEN_H * TILE_H) * 0.5f;
 
-    for (int level = 0; level <= MAP_GEN_MAX_LEVEL; ++level) {
-        const int (*current_map)[MAP_GEN_W] = NULL;
-        switch (level) {
-            case 0: current_map = mapAltezza0; break;
-            case 1: current_map = mapAltezza1; break;
-            default: continue;
-        }
-
+    for (int level = MAP_GEN_MIN_LEVEL; level <= MAP_GEN_MAX_LEVEL; ++level) {
         for (int y = 0; y < MAP_GEN_H; ++y) {
             for (int x = 0; x < MAP_GEN_W; ++x) {
-                int tile_id = current_map[y][x];
-
-                // Sul livello 0 riempiamo eventuali celle -1 sotto la montagna o il path
-                // con l'erba piatta (0), così il terreno sotto rimane continuo e piatto
-                if (tile_id == -1) {
-                    if (level == 0 && mapAltezza1[y][x] != -1) {
-                        tile_id = 0;
-                    } else {
-                        continue;
-                    }
+                int tile_id = getEffectiveTile(level, x, y);
+                if (tile_id < 0 || tile_id >= TOTAL_TILES) {
+                    continue;
                 }
 
                 // Coordinate X e Z di base del tile 32x32
@@ -145,20 +211,18 @@ static void buildMapBuffer(void) {
                 float v_top    = 1.0f - ((float)row * TILE_H / TEX_H);
                 float v_bottom = 1.0f - ((float)(row + 1) * TILE_H / TEX_H);
 
-                // Altezza 3D (Y) dei 4 vertici:
-                // - Il livello 0 (il terreno sotto) resta SEMPRE piatto a Y = 0.0f!
-                // - Solo il livello 1 si alza dove c'è la montagna.
-                float y_tl = 0.0f, y_tr = 0.0f, y_br = 0.0f, y_bl = 0.0f;
-                if (level == 1) {
-                    y_tl = getCornerHeight(x,     y);
-                    y_tr = getCornerHeight(x + 1, y);
-                    y_br = getCornerHeight(x + 1, y + 1);
-                    y_bl = getCornerHeight(x,     y + 1);
+                // Calcolo dell'altezza 3D (Y) dei 4 vertici per qualsiasi livello in [-32, +32]
+                int height_level = isOverlayTile(tile_id) ? getOverlayBaseLevel(level, x, y) : level;
+                float y_tl = getCornerHeight(height_level, x,     y);
+                float y_tr = getCornerHeight(height_level, x + 1, y);
+                float y_br = getCornerHeight(height_level, x + 1, y + 1);
+                float y_bl = getCornerHeight(height_level, x,     y + 1);
 
-                    // Nei tile dei bordi della montagna (8..18), la roccia in outdoor.png
-                    // occupa solo la metà interna (16px) del tile, mentre i 16px esterni
-                    // sono trasparenti. Ritagliamo la metà trasparente esterna così la
-                    // base della roccia tocca direttamente quota Y = 0.0f sul terreno piatto!
+                // Nei tile dei bordi della montagna (8..18), la roccia in outdoor.png
+                // occupa solo la metà interna (16px) del tile, mentre i 16px esterni
+                // sono trasparenti. Ritagliamo la metà trasparente esterna così la
+                // base della roccia tocca direttamente la quota del livello sottostante!
+                if (isCliffBorderTile(tile_id)) {
                     float u_mid = (u_left + u_right) * 0.5f;
                     float v_mid = (v_top + v_bottom) * 0.5f;
 
@@ -181,8 +245,8 @@ static void buildMapBuffer(void) {
                 }
 
                 // Scegliamo la diagonale del quad in modo simmetrico sugli angoli della montagna
-                if ((y_tl > 0.0f && y_br == 0.0f && y_tr == 0.0f && y_bl == 0.0f) ||
-                    (y_br > 0.0f && y_tl == 0.0f && y_tr == 0.0f && y_bl == 0.0f)) {
+                // (funziona a qualsiasi quota da -32 a +32)
+                if (y_tr == y_bl && y_tl != y_br) {
                     // Diagonale da Top-Left (TL) a Bottom-Right (BR)
                     vbo_data[vbo_count++] = (TileVertex){x_left,  y_bl, z_bot, u_left,  v_bottom, 0.0f, 0.0f};
                     vbo_data[vbo_count++] = (TileVertex){x_right, y_br, z_bot, u_right, v_bottom, 0.0f, 0.0f};
@@ -231,7 +295,8 @@ static void initScene(void) {
     float eye_y = CAM_DIST * sinf(rad);
     float eye_z = CAM_DIST * cosf(rad);
 
-    Mtx_PerspTilt(&projection, C3D_AngleFromDegrees(42.0f), C3D_AspectRatioTop, 10.0f, 1000.0f, false);
+    // Far plane esteso a 4000.0f per supportare l'intero range di 64 dislivelli (-32 -> +32)
+    Mtx_PerspTilt(&projection, C3D_AngleFromDegrees(42.0f), C3D_AspectRatioTop, 5.0f, 4000.0f, false);
     Mtx_LookAt(&view,
         FVec3_New(0.0f, eye_y, eye_z),
         FVec3_New(0.0f, 0.0f, 0.0f),
