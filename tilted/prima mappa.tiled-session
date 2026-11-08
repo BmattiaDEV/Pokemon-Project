@@ -5,18 +5,18 @@
     ],
     "fileStates": {
         "Map.tmx": {
-            "scale": 3.2025390624999996,
-            "selectedLayer": 2,
+            "scale": 4,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 128.0234189180948,
-                "y": 127.86729279746295
+                "x": 155.375,
+                "y": 135.25
             }
         },
         "outdoor.tsx": {
             "scaleInDock": 1
         }
     },
-    "last.exportedFilePath": "C:/GitHub/Terrain_generatio/tilted/exports",
+    "last.exportedFilePath": "C:/tilted/exports",
     "last.imagePath": "C:/Pokemon-Project/pngs",
     "map.height": 8,
     "map.lastUsedExportFilter": "File CSV (*.csv)",

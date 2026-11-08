@@ -15,9 +15,9 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET      := $(notdir $(CURDIR))
 BUILD       := build
-SOURCES     := source
+SOURCES     := source source/core source/map source/world source/render
 DATA        := data
-INCLUDES    := source
+INCLUDES    := source source/core source/map source/world source/render
 
 #---------------------------------------------------------------------------------
 # Opzioni di compilazione
@@ -132,7 +132,7 @@ $(OFILES_SRC)   : $(OFILES_BIN)
 #---------------------------------------------------------------------------------
 # Compilazione Shader (picasso)
 #---------------------------------------------------------------------------------
-vshader.shbin: ../source/vshader.vsh
+vshader.shbin: ../source/render/vshader.vsh
 	@echo Compiling $(notdir $<)...
 	@$(DEVKITPRO)/tools/bin/picasso -o $@ $<
 

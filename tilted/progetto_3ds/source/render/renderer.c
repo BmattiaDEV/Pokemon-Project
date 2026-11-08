@@ -1,0 +1,106 @@
+#include "renderer.h"
+#include "common.h"
+#include "mesh_builder.h"
+#include "vshader_shbin.h"
+#include "tileset_t3x.h"
+
+static DVLB_s* vshader_dvlb = NULL;
+static shaderProgram_s program;
+static int uLoc_projection;
+static int uLoc_view;
+static C3D_Mtx projection;
+static C3D_Mtx view;
+static C3D_Tex tileset_tex;
+static C3D_RenderTarget* topScreen = NULL;
+
+void rendererInit(void) {
+    // 0. Crea il RenderTarget per lo schermo superiore (240x400)
+    topScreen = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
+    C3D_RenderTargetSetOutput(topScreen, GFX_TOP, GFX_LEFT, DISPLAY_TRANSFER_FLAGS);
+
+    // 1. Carica il Vertex Shader precompilato (.shbin)
+    vshader_dvlb = DVLB_ParseFile((u32*)vshader_shbin, vshader_shbin_size);
+    shaderProgramInit(&program);
+    shaderProgramSetVsh(&program, &vshader_dvlb->DVLE[0]);
+    C3D_BindProgram(&program);
+
+    // 2. Uniforms
+    uLoc_projection = shaderInstanceGetUniformLocation(program.vertexShader, "projection");
+    uLoc_view       = shaderInstanceGetUniformLocation(program.vertexShader, "view");
+
+    // 3. Attributi dei vertici
+    C3D_AttrInfo* attrInfo = C3D_GetAttrInfo();
+    AttrInfo_Init(attrInfo);
+    AttrInfo_AddLoader(attrInfo, 0, GPU_FLOAT, 3); // position (x, y, z)
+    AttrInfo_AddLoader(attrInfo, 1, GPU_FLOAT, 2); // texcoord (u, v)
+    AttrInfo_AddLoader(attrInfo, 2, GPU_FLOAT, 2); // offset (ox, oy)
+
+    // 4. Telecamera 3D Prospettica inclinata di CAM_ANGLE_DEG
+    float rad   = CAM_ANGLE_DEG * (M_PI / 180.0f);
+    float eye_y = CAM_DIST * sinf(rad);
+    float eye_z = CAM_DIST * cosf(rad);
+
+    // Far plane esteso a 4000.0f per supportare l'intero range di 64 dislivelli (-32 -> +32)
+    Mtx_PerspTilt(&projection, C3D_AngleFromDegrees(42.0f), C3D_AspectRatioTop, 5.0f, 4000.0f, false);
+    Mtx_LookAt(&view,
+        FVec3_New(0.0f, eye_y, eye_z),
+        FVec3_New(0.0f, 0.0f, 0.0f),
+        FVec3_New(0.0f, 1.0f, 0.0f),
+        false
+    );
+
+    // 5. Carica la Texture del Tileset preconvertita in formato nativo PICA200 (.t3x) una sola volta in VRAM
+    Tex3DS_Texture t3x = Tex3DS_TextureImport(tileset_t3x, tileset_t3x_size, &tileset_tex, NULL, false);
+    if (t3x) {
+        Tex3DS_TextureFree(t3x);
+    }
+    C3D_TexSetFilter(&tileset_tex, GPU_NEAREST, GPU_NEAREST);
+    C3D_TexSetWrap(&tileset_tex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
+
+    // 6. Configura TexEnv e Alpha Blending
+    C3D_TexEnv* env = C3D_GetTexEnv(0);
+    C3D_TexEnvInit(env);
+    C3D_TexEnvSrc(env, C3D_Both, GPU_TEXTURE0, 0, 0);
+    C3D_TexEnvFunc(env, C3D_Both, GPU_REPLACE);
+
+    C3D_DepthTest(false, GPU_ALWAYS, GPU_WRITE_ALL);
+    C3D_AlphaBlend(GPU_BLEND_ADD, GPU_BLEND_ADD, GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA, GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA);
+    C3D_AlphaTest(true, GPU_GREATER, 0);
+
+    // 7. Costruisci il buffer geometrico statico della mappa una sola volta prima del main loop
+    meshBuilderBuild();
+
+    // 8. Registra il VBO in Citro3D
+    C3D_BufInfo* bufInfo = C3D_GetBufInfo();
+    BufInfo_Init(bufInfo);
+    BufInfo_Add(bufInfo, meshBuilderGetVbo(), sizeof(TileVertex), 3, 0x210);
+}
+
+void rendererDrawFrame(void) {
+    C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+    C3D_FrameDrawOn(topScreen);
+    C3D_RenderTargetClear(topScreen, C3D_CLEAR_ALL, CLEAR_COLOR, 0);
+
+    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_projection, &projection);
+    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_view, &view);
+
+    C3D_TexBind(0, &tileset_tex);
+
+    u32 vbo_count = meshBuilderGetVertexCount();
+    if (vbo_count > 0) {
+        C3D_DrawArrays(GPU_TRIANGLES, 0, vbo_count);
+    }
+
+    C3D_FrameEnd(0);
+}
+
+void rendererExit(void) {
+    meshBuilderFree();
+    shaderProgramFree(&program);
+    if (vshader_dvlb) {
+        DVLB_Free(vshader_dvlb);
+        vshader_dvlb = NULL;
+    }
+    C3D_TexDelete(&tileset_tex);
+}
+

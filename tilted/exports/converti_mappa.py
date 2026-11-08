@@ -20,7 +20,7 @@ elif (CARTELLA_SCRIPT.parent / "progetto_3ds").is_dir():
 else:
     CARTELLA_PROGETTO = CARTELLA_SCRIPT.parent.parent / "progetto_3ds"
 
-OUTPUT = CARTELLA_PROGETTO / "source" / "map_data.h"
+OUTPUT = CARTELLA_PROGETTO / "source" / "map" / "map_data.h"
 
 VUOTO = -1   # cella senza tile nei CSV di Tiled
 MIN_LIVELLO = -32
