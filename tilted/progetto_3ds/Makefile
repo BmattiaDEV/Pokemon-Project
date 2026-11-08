@@ -15,9 +15,9 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET      := $(notdir $(CURDIR))
 BUILD       := build
-SOURCES     := source source/core source/map source/world source/render
+SOURCES     := source source/core source/map source/world source/player source/render
 DATA        := data
-INCLUDES    := source source/core source/map source/world source/render
+INCLUDES    := source source/core source/map source/world source/player source/render
 
 #---------------------------------------------------------------------------------
 # Opzioni di compilazione
@@ -58,9 +58,9 @@ CFILES      := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES    := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES      := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 
-# Escludiamo .csv e .png e aggiungiamo i file binari generati
-BINFILES    := $(foreach dir,$(DATA),$(notdir $(filter-out %.csv %.png,$(wildcard $(dir)/*.*)))) \
-               tileset.t3x vshader.shbin
+# Includiamo eventuali .bin in data/ e i file binari generati (.t3x e .shbin)
+BINFILES    := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.bin))) \
+               tileset.t3x player.t3x vshader.shbin
 
 #---------------------------------------------------------------------------------
 ifeq ($(strip $(CPPFILES)),)
@@ -141,13 +141,21 @@ vshader.shbin.o vshader_shbin.h: vshader.shbin
 	@$(bin2o)
 
 #---------------------------------------------------------------------------------
-# Compilazione Texture (tex3ds) - Usa outdoor.png presente in data/
+# Compilazione Texture (tex3ds) - Usa outdoor.png e player.png presenti in data/
 #---------------------------------------------------------------------------------
 tileset.t3x: ../data/outdoor.png
 	@echo Converting $(notdir $<) to $@...
 	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
 
 tileset.t3x.o tileset_t3x.h: tileset.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+player.t3x: ../data/player.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+player.t3x.o player_t3x.h: player.t3x
 	@echo $(notdir $<)
 	@$(bin2o)
 

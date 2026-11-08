@@ -107,8 +107,10 @@ renderer.o: C:/tilted/progetto_3ds/source/render/renderer.c \
  C:/devkitPro/libctru/include/c3d/renderqueue.h \
  C:/devkitPro/libctru/include/tex3ds.h \
  C:/tilted/progetto_3ds/source/world/mesh_builder.h \
+ C:/tilted/progetto_3ds/source/player/player.h \
  C:/tilted/progetto_3ds/build/vshader_shbin.h \
- C:/tilted/progetto_3ds/build/tileset_t3x.h
+ C:/tilted/progetto_3ds/build/tileset_t3x.h \
+ C:/tilted/progetto_3ds/build/player_t3x.h
 C:/tilted/progetto_3ds/source/render/renderer.h:
 C:/tilted/progetto_3ds/source/core/common.h:
 C:/devkitPro/libctru/include/3ds.h:
@@ -217,5 +219,7 @@ C:/devkitPro/libctru/include/c3d/framebuffer.h:
 C:/devkitPro/libctru/include/c3d/renderqueue.h:
 C:/devkitPro/libctru/include/tex3ds.h:
 C:/tilted/progetto_3ds/source/world/mesh_builder.h:
+C:/tilted/progetto_3ds/source/player/player.h:
 C:/tilted/progetto_3ds/build/vshader_shbin.h:
 C:/tilted/progetto_3ds/build/tileset_t3x.h:
+C:/tilted/progetto_3ds/build/player_t3x.h:

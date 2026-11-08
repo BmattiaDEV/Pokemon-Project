@@ -1,8 +1,11 @@
 #include "mesh_builder.h"
 #include "world.h"
 
+#define TOTAL_SORT_ROWS (MAP_GEN_H + 6)
+
 static TileVertex* vbo_data = NULL;
 static u32 vbo_count = 0;
+static u32 row_ground_end[TOTAL_SORT_ROWS];
 
 static void emitQuad(float x_left, float x_right,
                      float y_tl, float y_tr, float y_br, float y_bl,
@@ -32,7 +35,8 @@ static void emitQuad(float x_left, float x_right,
 
 void meshBuilderBuild(void) {
     int max_tiles = MAP_GEN_W * MAP_GEN_H * (MAP_GEN_NUM_LEVELS + 2);
-    vbo_data = (TileVertex*)linearAlloc(max_tiles * 6 * sizeof(TileVertex));
+    // Riserviamo +6 vertici in fondo al VBO per il quad dinamico del giocatore
+    vbo_data = (TileVertex*)linearAlloc((max_tiles * 6 + 6) * sizeof(TileVertex));
     vbo_count = 0;
     if (!vbo_data) return;
 
@@ -46,7 +50,7 @@ void meshBuilderBuild(void) {
     int base_ground_level = worldGetBaseGroundLevel();
 
     // Costruzione buffer ordinata per profondità Z (dalla riga più lontana alla più vicina alla telecamera)
-    for (int row_z = 0; row_z < MAP_GEN_H + 6; ++row_z) {
+    for (int row_z = 0; row_z < TOTAL_SORT_ROWS; ++row_z) {
         // 1. Terreno (erba/montagne) e overlay piatti al suolo (sentieri, piazzole, fiori) sulla riga `row_z`
         if (row_z < MAP_GEN_H) {
             int y = row_z;
@@ -110,6 +114,9 @@ void meshBuilderBuild(void) {
             }
         }
 
+        // Salviamo il punto di split dopo il terreno della riga `row_z` e prima degli alberi con base in `row_z`
+        row_ground_end[row_z] = vbo_count;
+
         // 2. Alberi inclinati in 3D verso la telecamera con base del tronco a `tree_base_y == row_z`
         for (int target_trunk_x = 0; target_trunk_x < MAP_GEN_W; ++target_trunk_x) {
             for (int level = MAP_GEN_MIN_LEVEL; level <= MAP_GEN_MAX_LEVEL; ++level) {
@@ -170,7 +177,8 @@ void meshBuilderBuild(void) {
         }
     }
 
-    GSPGPU_FlushDataCache(vbo_data, vbo_count * sizeof(TileVertex));
+    memset(&vbo_data[vbo_count], 0, 6 * sizeof(TileVertex));
+    GSPGPU_FlushDataCache(vbo_data, (vbo_count + 6) * sizeof(TileVertex));
 }
 
 void meshBuilderFree(void) {
@@ -189,3 +197,14 @@ u32 meshBuilderGetVertexCount(void) {
     return vbo_count;
 }
 
+u32 meshBuilderGetRowGroundEnd(int row_z) {
+    if (row_z < 0) return 0;
+    if (row_z >= TOTAL_SORT_ROWS) return vbo_count;
+    return row_ground_end[row_z];
+}
+
+void meshBuilderUpdatePlayerVertices(const TileVertex player_verts[6]) {
+    if (!vbo_data) return;
+    memcpy(&vbo_data[vbo_count], player_verts, 6 * sizeof(TileVertex));
+    GSPGPU_FlushDataCache(&vbo_data[vbo_count], 6 * sizeof(TileVertex));
+}
