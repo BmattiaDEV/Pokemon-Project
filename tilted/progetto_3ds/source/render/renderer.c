@@ -16,6 +16,15 @@ static C3D_Tex tileset_tex;
 static C3D_Tex player_tex;
 static C3D_RenderTarget* topScreen = NULL;
 
+void rendererReloadMap(void) {
+    meshBuilderFree();
+    meshBuilderBuild();
+
+    C3D_BufInfo* bufInfo = C3D_GetBufInfo();
+    BufInfo_Init(bufInfo);
+    BufInfo_Add(bufInfo, meshBuilderGetVbo(), sizeof(TileVertex), 3, 0x210);
+}
+
 void rendererInit(void) {
     // 0. Crea il RenderTarget per lo schermo superiore (240x400)
     topScreen = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
@@ -67,13 +76,8 @@ void rendererInit(void) {
     C3D_AlphaBlend(GPU_BLEND_ADD, GPU_BLEND_ADD, GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA, GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA);
     C3D_AlphaTest(true, GPU_GREATER, 0);
 
-    // 8. Costruisci il buffer geometrico della mappa una sola volta prima del main loop
-    meshBuilderBuild();
-
-    // 9. Registra il VBO in Citro3D
-    C3D_BufInfo* bufInfo = C3D_GetBufInfo();
-    BufInfo_Init(bufInfo);
-    BufInfo_Add(bufInfo, meshBuilderGetVbo(), sizeof(TileVertex), 3, 0x210);
+    // 8. Costruisci il buffer geometrico della mappa iniziale e registra il VBO
+    rendererReloadMap();
 }
 
 void rendererDrawFrame(void) {

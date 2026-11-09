@@ -1,17 +1,138 @@
 #include "world.h"
 
+typedef struct {
+    int width;
+    int height;
+    int min_level;
+    int max_level;
+    int num_levels;
+    int num_layers;
+    const int* layer_heights;
+    const int* const* layers;
+} MapDescriptor;
+
+// --- Mappa 1: Mappa 8x8 piana di sola erba con 1 livello d'altezza (altezza 0) ---
+static const int mapPlain8x8_Altezza0[8][8] = {
+    {0, 1, 0, 1, 0, 1, 0, 1},
+    {8, 9, 8, 9, 8, 9, 8, 9},
+    {0, 1, 0, 1, 0, 1, 0, 1},
+    {8, 9, 8, 9, 8, 9, 8, 9},
+    {0, 1, 0, 1, 0, 1, 0, 1},
+    {8, 9, 8, 9, 8, 9, 8, 9},
+    {0, 1, 0, 1, 0, 1, 0, 1},
+    {8, 9, 8, 9, 8, 9, 8, 9}
+};
+
+static const int mapPlain8x8_Heights[1] = { 0 };
+static const int* const mapPlain8x8_Layers[1] = { &mapPlain8x8_Altezza0[0][0] };
+
+static const MapDescriptor g_maps[MAP_COUNT] = {
+    [MAP_MAIN] = {
+        .width         = MAP_GEN_W,
+        .height        = MAP_GEN_H,
+        .min_level     = MAP_GEN_MIN_LEVEL,
+        .max_level     = MAP_GEN_MAX_LEVEL,
+        .num_levels    = MAP_GEN_NUM_LEVELS,
+        .num_layers    = MAP_GEN_NUM_LAYERS,
+        .layer_heights = mapLayerHeights,
+        .layers        = mapLayers
+    },
+    [MAP_PLAIN_8X8] = {
+        .width         = 8,
+        .height        = 8,
+        .min_level     = 0,
+        .max_level     = 0,
+        .num_levels    = 1,
+        .num_layers    = 1,
+        .layer_heights = mapPlain8x8_Heights,
+        .layers        = mapPlain8x8_Layers
+    }
+};
+
+static MapId g_current_map_id = MAP_MAIN;
+static const MapDescriptor* g_current_map = &g_maps[MAP_MAIN];
+
+void worldSetCurrentMap(MapId map_id) {
+    if (map_id < 0 || map_id >= MAP_COUNT) return;
+    g_current_map_id = map_id;
+    g_current_map    = &g_maps[map_id];
+}
+
+MapId worldGetCurrentMapId(void) {
+    return g_current_map_id;
+}
+
+int worldGetMapWidth(void) {
+    return g_current_map->width;
+}
+
+int worldGetMapHeight(void) {
+    return g_current_map->height;
+}
+
+int worldGetMinLevel(void) {
+    return g_current_map->min_level;
+}
+
+int worldGetMaxLevel(void) {
+    return g_current_map->max_level;
+}
+
+int worldGetNumLevels(void) {
+    return g_current_map->num_levels;
+}
+
+int worldGetNumLayers(void) {
+    return g_current_map->num_layers;
+}
+
+int worldGetLayerHeight(int layer_idx) {
+    if (layer_idx < 0 || layer_idx >= g_current_map->num_layers) return 0;
+    return g_current_map->layer_heights[layer_idx];
+}
+
 int worldGetBaseGroundLevel(void) {
-    return (0 >= MAP_GEN_MIN_LEVEL && 0 <= MAP_GEN_MAX_LEVEL) ? 0 : MAP_GEN_MIN_LEVEL;
+    int min_l = g_current_map->min_level;
+    int max_l = g_current_map->max_level;
+    return (0 >= min_l && 0 <= max_l) ? 0 : min_l;
+}
+
+int worldGetLayerRawTile(int layer_idx, int x, int y) {
+    if (layer_idx < 0 || layer_idx >= g_current_map->num_layers) return -1;
+    if (x < 0 || x >= g_current_map->width || y < 0 || y >= g_current_map->height) return -1;
+    return g_current_map->layers[layer_idx][y * g_current_map->width + x];
+}
+
+// Restituisce true se `layer_idx` è il primo sub-layer associato alla propria altezza
+static bool isPrimarySubLayerForHeight(int layer_idx) {
+    if (layer_idx <= 0) return true;
+    return (g_current_map->layer_heights[layer_idx] != g_current_map->layer_heights[layer_idx - 1]);
 }
 
 int worldGetRawTile(int level, int x, int y) {
-    if (level < MAP_GEN_MIN_LEVEL || level > MAP_GEN_MAX_LEVEL) return -1;
-    if (x < 0 || x >= MAP_GEN_W || y < 0 || y >= MAP_GEN_H) return -1;
-    return mapLevels[level - MAP_GEN_MIN_LEVEL][y][x];
+    if (level < g_current_map->min_level || level > g_current_map->max_level) return -1;
+    if (x < 0 || x >= g_current_map->width || y < 0 || y >= g_current_map->height) return -1;
+
+    int first_overlay = -1;
+    for (int i = 0; i < g_current_map->num_layers; ++i) {
+        if (g_current_map->layer_heights[i] != level) continue;
+        int t = g_current_map->layers[i][y * g_current_map->width + x];
+        if (t != -1) {
+            // Diamo priorità ai tile di terreno/montagna rispetto agli overlay (sentieri/alberi) sullo stesso livello
+            if (!isOverlayTile(t)) {
+                return t;
+            }
+            if (first_overlay == -1) {
+                first_overlay = t;
+            }
+        }
+    }
+    return first_overlay;
 }
 
 bool worldIsInsideMountainPlateau(int level, int x, int y) {
     if (level <= worldGetBaseGroundLevel()) return false;
+    int w = g_current_map->width;
 
     bool has_left_wall = false;
     for (int xx = x - 1; xx >= 0; --xx) {
@@ -27,7 +148,7 @@ bool worldIsInsideMountainPlateau(int level, int x, int y) {
     if (!has_left_wall) return false;
 
     bool has_right_wall = false;
-    for (int xx = x + 1; xx < MAP_GEN_W; ++xx) {
+    for (int xx = x + 1; xx < w; ++xx) {
         int t = worldGetRawTile(level, xx, y);
         if (t == 44 || t == 52 || t == 60 || t == 68) {
             has_right_wall = true;
@@ -40,10 +161,25 @@ bool worldIsInsideMountainPlateau(int level, int x, int y) {
     return has_right_wall;
 }
 
-int worldGetTreeRowFromBottom(int level, int x, int y, int tile_id) {
+int worldGetTreeRowFromBottom(int layer_idx, int x, int y, int tile_id) {
     if (tile_id == 21 || tile_id == 29 || tile_id == 22 || tile_id == 30) {
         int nx = x + getTreeTrunkOffsetX(tile_id);
-        int neighbor = worldGetRawTile(level, nx, y);
+        int level = worldGetLayerHeight(layer_idx);
+        int neighbor = worldGetLayerRawTile(layer_idx, nx, y);
+
+        // Se la punta fogliare è su un sub-layer separato, cerchiamo anche negli altri sub-layer della stessa altezza
+        if (neighbor == -1) {
+            for (int i = 0; i < g_current_map->num_layers; ++i) {
+                if (g_current_map->layer_heights[i] == level) {
+                    int cand = worldGetLayerRawTile(i, nx, y);
+                    if (cand >= 120 && cand <= 199) {
+                        neighbor = cand;
+                        break;
+                    }
+                }
+            }
+        }
+
         if (neighbor >= 120 && neighbor <= 151) {
             return 18 - (neighbor / TILESET_COLS);
         }
@@ -63,16 +199,18 @@ int worldGetTreeRowFromBottom(int level, int x, int y, int tile_id) {
 }
 
 bool worldHasTileAbove(int level, int x, int y) {
-    for (int l = level + 1; l <= MAP_GEN_MAX_LEVEL; ++l) {
-        if (worldGetRawTile(l, x, y) != -1) {
-            return true;
+    for (int i = 0; i < g_current_map->num_layers; ++i) {
+        if (g_current_map->layer_heights[i] > level) {
+            if (worldGetLayerRawTile(i, x, y) != -1) {
+                return true;
+            }
         }
     }
     return false;
 }
 
 bool worldHasTerrainAbove(int level, int x, int y) {
-    for (int l = level + 1; l <= MAP_GEN_MAX_LEVEL; ++l) {
+    for (int l = level + 1; l <= g_current_map->max_level; ++l) {
         int t = worldGetRawTile(l, x, y);
         if ((t != -1 && !isOverlayTile(t)) || worldIsInsideMountainPlateau(l, x, y)) {
             return true;
@@ -81,10 +219,16 @@ bool worldHasTerrainAbove(int level, int x, int y) {
     return false;
 }
 
-int worldGetEffectiveTile(int level, int x, int y) {
-    int tid = worldGetRawTile(level, x, y);
+int worldGetEffectiveLayerTile(int layer_idx, int x, int y) {
+    int tid = worldGetLayerRawTile(layer_idx, x, y);
     if (tid != -1) return tid;
 
+    // Solo il sub-layer principale di un'altezza riempie eventuali buchi con erba (evita doppi quad di erba)
+    if (!isPrimarySubLayerForHeight(layer_idx)) {
+        return -1;
+    }
+
+    int level = worldGetLayerHeight(layer_idx);
     int grass_fill = ((y % 2) * 8) + (x % 2); // 0, 1, 8, 9 (pattern 2x2 dell'erba chiara)
 
     // Sul piano base manteniamo il terreno continuo se un livello superiore disegna qualcosa sopra questa cella
@@ -103,7 +247,7 @@ int worldGetEffectiveTile(int level, int x, int y) {
 }
 
 bool worldDoesCellRaiseCorner(int level, int cx, int cy, int corner_dx, int corner_dy) {
-    if (cx < 0 || cx >= MAP_GEN_W || cy < 0 || cy >= MAP_GEN_H) return false;
+    if (cx < 0 || cx >= g_current_map->width || cy < 0 || cy >= g_current_map->height) return false;
 
     int tid = worldGetRawTile(level, cx, cy);
     if (tid == -1 || isOverlayTile(tid)) {
@@ -142,16 +286,18 @@ float worldGetCornerHeight(int level, int gx, int gy) {
 }
 
 int worldGetOverlayBaseLevel(int level, int x, int y) {
+    int w = g_current_map->width;
+    int h = g_current_map->height;
     if (x < 0) x = 0;
-    if (x >= MAP_GEN_W) x = MAP_GEN_W - 1;
+    if (x >= w) x = w - 1;
     if (y < 0) y = 0;
-    if (y >= MAP_GEN_H) y = MAP_GEN_H - 1;
+    if (y >= h) y = h - 1;
 
     if (worldIsInsideMountainPlateau(level, x, y)) {
         return level;
     }
 
-    for (int l = level - 1; l >= MAP_GEN_MIN_LEVEL; --l) {
+    for (int l = level - 1; l >= g_current_map->min_level; --l) {
         int t = worldGetRawTile(l, x, y);
         if ((t != -1 && !isOverlayTile(t)) || worldIsInsideMountainPlateau(l, x, y)) {
             return l;
@@ -159,4 +305,3 @@ int worldGetOverlayBaseLevel(int level, int x, int y) {
     }
     return worldGetBaseGroundLevel();
 }
-

@@ -1,6 +1,7 @@
-world.o: C:/tilted/progetto_3ds/source/world/world.c \
- C:/tilted/progetto_3ds/source/world/world.h \
- C:/tilted/progetto_3ds/source/core/common.h \
+world.o: \
+ C:/github/terrain_generatio/tilted/progetto_3ds/source/world/world.c \
+ C:/github/terrain_generatio/tilted/progetto_3ds/source/world/world.h \
+ C:/github/terrain_generatio/tilted/progetto_3ds/source/core/common.h \
  C:/devkitPro/libctru/include/3ds.h \
  C:/devkitPro/libctru/include/3ds/types.h \
  C:/devkitPro/libctru/include/3ds/result.h \
@@ -106,10 +107,10 @@ world.o: C:/tilted/progetto_3ds/source/world/world.c \
  C:/devkitPro/libctru/include/c3d/framebuffer.h \
  C:/devkitPro/libctru/include/c3d/renderqueue.h \
  C:/devkitPro/libctru/include/tex3ds.h \
- C:/tilted/progetto_3ds/source/map/map_data.h \
- C:/tilted/progetto_3ds/source/map/tileset_defs.h
-C:/tilted/progetto_3ds/source/world/world.h:
-C:/tilted/progetto_3ds/source/core/common.h:
+ C:/github/terrain_generatio/tilted/progetto_3ds/source/map/map_data.h \
+ C:/github/terrain_generatio/tilted/progetto_3ds/source/map/tileset_defs.h
+C:/github/terrain_generatio/tilted/progetto_3ds/source/world/world.h:
+C:/github/terrain_generatio/tilted/progetto_3ds/source/core/common.h:
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
@@ -215,5 +216,5 @@ C:/devkitPro/libctru/include/c3d/fog.h:
 C:/devkitPro/libctru/include/c3d/framebuffer.h:
 C:/devkitPro/libctru/include/c3d/renderqueue.h:
 C:/devkitPro/libctru/include/tex3ds.h:
-C:/tilted/progetto_3ds/source/map/map_data.h:
-C:/tilted/progetto_3ds/source/map/tileset_defs.h:
+C:/github/terrain_generatio/tilted/progetto_3ds/source/map/map_data.h:
+C:/github/terrain_generatio/tilted/progetto_3ds/source/map/tileset_defs.h:

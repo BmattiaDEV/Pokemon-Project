@@ -2,12 +2,17 @@
 #include "world.h"
 
 int collisionGetWalkableLevel(int x, int y) {
-    if (x < 0 || x >= MAP_GEN_W || y < 0 || y >= MAP_GEN_H) {
+    int map_w = worldGetMapWidth();
+    int map_h = worldGetMapHeight();
+    if (x < 0 || x >= map_w || y < 0 || y >= map_h) {
         return COLLISION_BLOCKED_LEVEL;
     }
 
+    int min_l = worldGetMinLevel();
+    int max_l = worldGetMaxLevel();
+
     // Scansioniamo dal livello più alto al più basso per trovare il terreno effettivo o eventuali pareti rocciose
-    for (int level = MAP_GEN_MAX_LEVEL; level >= MAP_GEN_MIN_LEVEL; --level) {
+    for (int level = max_l; level >= min_l; --level) {
         int tid = worldGetRawTile(level, x, y);
 
         // Le pareti inclinate della montagna (cliff borders) sono ostacoli insuperabili
@@ -29,7 +34,9 @@ bool collisionCanMove(int from_x, int from_y, int from_level, int to_x, int to_y
     (void)from_x;
     (void)from_y;
 
-    if (to_x < 0 || to_x >= MAP_GEN_W || to_y < 0 || to_y >= MAP_GEN_H) {
+    int map_w = worldGetMapWidth();
+    int map_h = worldGetMapHeight();
+    if (to_x < 0 || to_x >= map_w || to_y < 0 || to_y >= map_h) {
         return false;
     }
 
@@ -39,20 +46,22 @@ bool collisionCanMove(int from_x, int from_y, int from_level, int to_x, int to_y
         return false;
     }
 
-    // 2. Collisione con strutture solide (alberi alla stessa altezza del giocatore)
+    // 2. Collisione con strutture solide su qualsiasi sub-layer (alberi alla stessa altezza del giocatore)
     // Sentieri (73..117), fiori (16..27) e chiome alte degli alberi sono attraversabili
-    for (int level = MAP_GEN_MIN_LEVEL; level <= MAP_GEN_MAX_LEVEL; ++level) {
-        int tid = worldGetRawTile(level, to_x, to_y);
+    int num_layers = worldGetNumLayers();
+    for (int layer_idx = 0; layer_idx < num_layers; ++layer_idx) {
+        int tid = worldGetLayerRawTile(layer_idx, to_x, to_y);
         if (tid == -1) {
             continue;
         }
 
         if (isSolidTreeTile(tid)) {
-            int k = worldGetTreeRowFromBottom(level, to_x, to_y, tid);
+            int level = worldGetLayerHeight(layer_idx);
+            int k = worldGetTreeRowFromBottom(layer_idx, to_x, to_y, tid);
             int tree_base_y = to_y + k;
             int x_trunk = to_x + getTreeTrunkOffsetX(tid);
             if (x_trunk < 0) x_trunk = 0;
-            if (x_trunk >= MAP_GEN_W) x_trunk = MAP_GEN_W - 1;
+            if (x_trunk >= map_w) x_trunk = map_w - 1;
 
             int tree_ground_level = worldGetOverlayBaseLevel(level, x_trunk, tree_base_y);
             if (tree_ground_level == from_level) {
@@ -63,4 +72,3 @@ bool collisionCanMove(int from_x, int from_y, int from_level, int to_x, int to_y
 
     return true;
 }
-

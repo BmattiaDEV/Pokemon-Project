@@ -1,6 +1,7 @@
-renderer.o: C:/tilted/progetto_3ds/source/render/renderer.c \
- C:/tilted/progetto_3ds/source/render/renderer.h \
- C:/tilted/progetto_3ds/source/core/common.h \
+renderer.o: \
+ C:/github/terrain_generatio/tilted/progetto_3ds/source/render/renderer.c \
+ C:/github/terrain_generatio/tilted/progetto_3ds/source/render/renderer.h \
+ C:/github/terrain_generatio/tilted/progetto_3ds/source/core/common.h \
  C:/devkitPro/libctru/include/3ds.h \
  C:/devkitPro/libctru/include/3ds/types.h \
  C:/devkitPro/libctru/include/3ds/result.h \
@@ -106,13 +107,13 @@ renderer.o: C:/tilted/progetto_3ds/source/render/renderer.c \
  C:/devkitPro/libctru/include/c3d/framebuffer.h \
  C:/devkitPro/libctru/include/c3d/renderqueue.h \
  C:/devkitPro/libctru/include/tex3ds.h \
- C:/tilted/progetto_3ds/source/world/mesh_builder.h \
- C:/tilted/progetto_3ds/source/player/player.h \
- C:/tilted/progetto_3ds/build/vshader_shbin.h \
- C:/tilted/progetto_3ds/build/tileset_t3x.h \
- C:/tilted/progetto_3ds/build/player_t3x.h
-C:/tilted/progetto_3ds/source/render/renderer.h:
-C:/tilted/progetto_3ds/source/core/common.h:
+ C:/github/terrain_generatio/tilted/progetto_3ds/source/world/mesh_builder.h \
+ C:/github/terrain_generatio/tilted/progetto_3ds/source/player/player.h \
+ C:/github/terrain_generatio/tilted/progetto_3ds/build/vshader_shbin.h \
+ C:/github/terrain_generatio/tilted/progetto_3ds/build/tileset_t3x.h \
+ C:/github/terrain_generatio/tilted/progetto_3ds/build/player_t3x.h
+C:/github/terrain_generatio/tilted/progetto_3ds/source/render/renderer.h:
+C:/github/terrain_generatio/tilted/progetto_3ds/source/core/common.h:
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
@@ -218,8 +219,8 @@ C:/devkitPro/libctru/include/c3d/fog.h:
 C:/devkitPro/libctru/include/c3d/framebuffer.h:
 C:/devkitPro/libctru/include/c3d/renderqueue.h:
 C:/devkitPro/libctru/include/tex3ds.h:
-C:/tilted/progetto_3ds/source/world/mesh_builder.h:
-C:/tilted/progetto_3ds/source/player/player.h:
-C:/tilted/progetto_3ds/build/vshader_shbin.h:
-C:/tilted/progetto_3ds/build/tileset_t3x.h:
-C:/tilted/progetto_3ds/build/player_t3x.h:
+C:/github/terrain_generatio/tilted/progetto_3ds/source/world/mesh_builder.h:
+C:/github/terrain_generatio/tilted/progetto_3ds/source/player/player.h:
+C:/github/terrain_generatio/tilted/progetto_3ds/build/vshader_shbin.h:
+C:/github/terrain_generatio/tilted/progetto_3ds/build/tileset_t3x.h:
+C:/github/terrain_generatio/tilted/progetto_3ds/build/player_t3x.h:

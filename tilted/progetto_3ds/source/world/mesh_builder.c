@@ -1,11 +1,12 @@
 #include "mesh_builder.h"
 #include "world.h"
 
-#define TOTAL_SORT_ROWS (MAP_GEN_H + 6)
+#define MAX_SORT_ROWS 64
 
 static TileVertex* vbo_data = NULL;
 static u32 vbo_count = 0;
-static u32 row_ground_end[TOTAL_SORT_ROWS];
+static int active_sort_rows = 0;
+static u32 row_ground_end[MAX_SORT_ROWS];
 
 static void emitQuad(float x_left, float x_right,
                      float y_tl, float y_tr, float y_br, float y_bl,
@@ -34,7 +35,16 @@ static void emitQuad(float x_left, float x_right,
 }
 
 void meshBuilderBuild(void) {
-    int max_tiles = MAP_GEN_W * MAP_GEN_H * (MAP_GEN_NUM_LEVELS + 2);
+    int map_w      = worldGetMapWidth();
+    int map_h      = worldGetMapHeight();
+    int num_layers = worldGetNumLayers();
+
+    active_sort_rows = map_h + 6;
+    if (active_sort_rows > MAX_SORT_ROWS) {
+        active_sort_rows = MAX_SORT_ROWS;
+    }
+
+    int max_tiles = map_w * map_h * (num_layers + 2);
     // Riserviamo +6 vertici in fondo al VBO per il quad dinamico del giocatore
     vbo_data = (TileVertex*)linearAlloc((max_tiles * 6 + 6) * sizeof(TileVertex));
     vbo_count = 0;
@@ -43,20 +53,21 @@ void meshBuilderBuild(void) {
     float half_w = TILE_W * 0.5f; // 8.0f
     float half_h = TILE_H * 0.5f; // 8.0f
 
-    // Centriamo la mappa 16x16 attorno a (0, 0, 0)
-    float map_half_w = (MAP_GEN_W * TILE_W) * 0.5f;
-    float map_half_d = (MAP_GEN_H * TILE_H) * 0.5f;
+    // Centriamo la mappa corrente attorno a (0, 0, 0)
+    float map_half_w = (map_w * TILE_W) * 0.5f;
+    float map_half_d = (map_h * TILE_H) * 0.5f;
 
     int base_ground_level = worldGetBaseGroundLevel();
 
     // Costruzione buffer ordinata per profondità Z (dalla riga più lontana alla più vicina alla telecamera)
-    for (int row_z = 0; row_z < TOTAL_SORT_ROWS; ++row_z) {
+    for (int row_z = 0; row_z < active_sort_rows; ++row_z) {
         // 1. Terreno (erba/montagne) e overlay piatti al suolo (sentieri, piazzole, fiori) sulla riga `row_z`
-        if (row_z < MAP_GEN_H) {
+        if (row_z < map_h) {
             int y = row_z;
-            for (int level = MAP_GEN_MIN_LEVEL; level <= MAP_GEN_MAX_LEVEL; ++level) {
-                for (int x = 0; x < MAP_GEN_W; ++x) {
-                    int tile_id = worldGetEffectiveTile(level, x, y);
+            for (int layer_idx = 0; layer_idx < num_layers; ++layer_idx) {
+                int level = worldGetLayerHeight(layer_idx);
+                for (int x = 0; x < map_w; ++x) {
+                    int tile_id = worldGetEffectiveLayerTile(layer_idx, x, y);
                     if (tile_id < 0 || tile_id >= TOTAL_TILES) {
                         continue;
                     }
@@ -69,9 +80,9 @@ void meshBuilderBuild(void) {
                     float z_top   = cz - half_h;
                     float z_bot   = cz + half_h;
 
-                    // Se un overlay (es. fiori) è piazzato direttamente dentro una montagna sullo stesso layer `level`,
-                    // disegniamo prima la base d'erba dell'altopiano a quota `level` sotto l'overlay
-                    if (isOverlayTile(tile_id) && worldIsInsideMountainPlateau(level, x, y)) {
+                    // Se un overlay piatto (es. fiori/sentiero) è piazzato direttamente dentro una montagna sullo stesso layer `level`
+                    // (e non è un albero su un sub-layer secondario), disegniamo prima la base d'erba dell'altopiano sotto l'overlay
+                    if (isOverlayTile(tile_id) && !isTreeTile(tile_id) && worldIsInsideMountainPlateau(level, x, y)) {
                         int gf = ((y % 2) * 8) + (x % 2);
                         int gcol = gf % TILESET_COLS;
                         int grow = gf / TILESET_COLS;
@@ -86,9 +97,9 @@ void meshBuilderBuild(void) {
                         emitQuad(x_left, x_right, gy_tl, gy_tr, gy_br, gy_bl, z_top, z_bot, gul, gur, gvt, gvb, 0.0f, 0.0f);
                     }
 
-                    // Se un albero è stato piazzato direttamente sul piano base, disegniamo comunque l'erba sotto
+                    // Gli alberi vengono disegnati nel Pass 2; se piazzati sul layer del piano base disegniamo l'erba sotto
                     if (isTreeTile(tile_id)) {
-                        if (level == base_ground_level) {
+                        if (level == base_ground_level && layer_idx == 0) {
                             tile_id = ((y % 2) * 8) + (x % 2);
                         } else {
                             continue;
@@ -118,16 +129,17 @@ void meshBuilderBuild(void) {
         row_ground_end[row_z] = vbo_count;
 
         // 2. Alberi inclinati in 3D verso la telecamera con base del tronco a `tree_base_y == row_z`
-        for (int target_trunk_x = 0; target_trunk_x < MAP_GEN_W; ++target_trunk_x) {
-            for (int level = MAP_GEN_MIN_LEVEL; level <= MAP_GEN_MAX_LEVEL; ++level) {
-                for (int y = 0; y < MAP_GEN_H; ++y) {
-                    for (int x = 0; x < MAP_GEN_W; ++x) {
-                        int tile_id = worldGetRawTile(level, x, y);
+        for (int target_trunk_x = 0; target_trunk_x < map_w; ++target_trunk_x) {
+            for (int layer_idx = 0; layer_idx < num_layers; ++layer_idx) {
+                int level = worldGetLayerHeight(layer_idx);
+                for (int y = 0; y < map_h; ++y) {
+                    for (int x = 0; x < map_w; ++x) {
+                        int tile_id = worldGetLayerRawTile(layer_idx, x, y);
                         if (!isTreeTile(tile_id)) {
                             continue;
                         }
 
-                        int k = worldGetTreeRowFromBottom(level, x, y, tile_id);
+                        int k = worldGetTreeRowFromBottom(layer_idx, x, y, tile_id);
                         int tree_base_y = y + k;
                         if (tree_base_y != row_z) {
                             continue;
@@ -135,7 +147,7 @@ void meshBuilderBuild(void) {
 
                         int x_trunk = x + getTreeTrunkOffsetX(tile_id);
                         if (x_trunk < 0) x_trunk = 0;
-                        if (x_trunk >= MAP_GEN_W) x_trunk = MAP_GEN_W - 1;
+                        if (x_trunk >= map_w) x_trunk = map_w - 1;
                         if (x_trunk != target_trunk_x) {
                             continue;
                         }
@@ -199,7 +211,7 @@ u32 meshBuilderGetVertexCount(void) {
 
 u32 meshBuilderGetRowGroundEnd(int row_z) {
     if (row_z < 0) return 0;
-    if (row_z >= TOTAL_SORT_ROWS) return vbo_count;
+    if (row_z >= active_sort_rows) return vbo_count;
     return row_ground_end[row_z];
 }
 

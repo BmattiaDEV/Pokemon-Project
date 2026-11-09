@@ -1,6 +1,7 @@
 #include "player.h"
 #include "collision.h"
 #include "world.h"
+#include "events.h"
 
 typedef struct {
     int grid_x;
@@ -82,6 +83,10 @@ void playerInit(int start_x, int start_y) {
     player.level = (walk_level != COLLISION_BLOCKED_LEVEL) ? walk_level : worldGetBaseGroundLevel();
 }
 
+void playerSetDirection(PlayerDirection dir) {
+    player.dir = dir;
+}
+
 void playerUpdate(u32 kDown, u32 kHeld) {
     // Se il giocatore sta già camminando verso il prossimo tile, continua l'animazione fino all'arrivo
     if (player.moving) {
@@ -94,6 +99,11 @@ void playerUpdate(u32 kDown, u32 kHeld) {
             player.move_progress = 0.0f;
             player.moving        = false;
             player.step_parity  ^= 1;
+
+            // Controlla se la cella appena calpestata attiva un evento (es. cambio mappa)
+            if (eventsCheckOnStep(player.grid_x, player.grid_y, player.level)) {
+                return;
+            }
         } else {
             player.pos_x = (float)player.grid_x + (float)(player.target_x - player.grid_x) * player.move_progress;
             player.pos_y = (float)player.grid_y + (float)(player.target_y - player.grid_y) * player.move_progress;
@@ -145,8 +155,8 @@ void playerUpdate(u32 kDown, u32 kHeld) {
 }
 
 void playerGetWorldPos(float* out_x, float* out_y, float* out_z) {
-    float map_half_w = (MAP_GEN_W * TILE_W) * 0.5f;
-    float map_half_d = (MAP_GEN_H * TILE_H) * 0.5f;
+    float map_half_w = (worldGetMapWidth()  * TILE_W) * 0.5f;
+    float map_half_d = (worldGetMapHeight() * TILE_H) * 0.5f;
 
     if (out_x) *out_x = (player.pos_x * TILE_W + TILE_W * 0.5f) - map_half_w;
     if (out_y) *out_y = (float)player.level * LEVEL_HEIGHT;
@@ -187,4 +197,3 @@ void playerBuildQuad(TileVertex out_verts[6]) {
     out_verts[4] = (TileVertex){x_right, y_top, z_top, u_right, v_top,    0.0f, 0.0f};
     out_verts[5] = (TileVertex){x_left,  y_top, z_top, u_left,  v_top,    0.0f, 0.0f};
 }
-
