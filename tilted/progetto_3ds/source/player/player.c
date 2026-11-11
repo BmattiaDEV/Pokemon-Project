@@ -1,5 +1,6 @@
 #include "player.h"
 #include "ds_map.h"
+#include "encounter.h"
 
 typedef struct {
     int             grid_x;
@@ -90,6 +91,10 @@ void playerUpdate(u32 kDown, u32 kHeld) {
             s_player.move_progress = 0.0f;
             s_player.moving        = false;
             s_player.step_parity  ^= 1;
+            encounterOnStep(s_player.grid_x, s_player.grid_y);
+            if (encounterGetState() == GAME_STATE_ENCOUNTER) {
+                return;
+            }
         } else {
             s_player.pos_x = (float)s_player.grid_x + (float)(s_player.target_x - s_player.grid_x) * s_player.move_progress;
             s_player.pos_y = (float)s_player.grid_y + (float)(s_player.target_y - s_player.grid_y) * s_player.move_progress;

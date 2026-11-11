@@ -57,6 +57,13 @@ void rendererDrawFrame(void) {
     C3D_FrameEnd(0);
 }
 
+void rendererDrawBlackFrame(void) {
+    C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+    C3D_FrameDrawOn(topScreen);
+    C3D_RenderTargetClear(topScreen, C3D_CLEAR_ALL, 0x000000FF, 0);
+    C3D_FrameEnd(0);
+}
+
 void rendererExit(void) {
     dsMapExit();
     shaderProgramFree(&program);

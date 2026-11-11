@@ -23,5 +23,8 @@ void dsMapUpdate(u32 kHeld, u32 kDown);
 bool  dsMapCanMove(int from_gx, int from_gy, int to_gx, int to_gy);
 float dsMapGetWorldPos(float grid_x, float grid_y, float* out_x, float* out_y, float* out_z);
 
+// Verifica se la cella (gx, gy) contiene erba alta (nectgr_lm42)
+bool  dsMapIsWildGrass(int gx, int gy);
+
 // Disegna la mappa DS e il giocatore (chiamata da rendererDrawFrame)
 void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view);

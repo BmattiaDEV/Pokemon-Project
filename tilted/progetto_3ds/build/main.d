@@ -108,7 +108,8 @@ main.o: \
  C:/devkitPro/libctru/include/tex3ds.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/player/player.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/renderer.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map.h
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map.h \
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/encounter.h
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h:
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
@@ -218,3 +219,4 @@ C:/devkitPro/libctru/include/tex3ds.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/player/player.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/renderer.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map.h:
+C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/encounter.h:

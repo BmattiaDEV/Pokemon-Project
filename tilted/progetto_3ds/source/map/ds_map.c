@@ -25,7 +25,7 @@ typedef enum {
 
 // Parametri onde e animazione 3D dell'acqua (Solution 5: sea_lm1)
 #define DS_MAP_WATER_GROUP    11
-#define WATER_WAVE_SPEED      3.0f   // Velocità oscillazione onde 3D
+#define WATER_WAVE_SPEED      2.0f   // Velocità oscillazione onde 3D
 #define WATER_WAVE_HEIGHT     2.0f   // Altezza/ampiezza onde 3D (unità mondo)
 #define WATER_FLOW_SPEED_U    1.2f   // Velocità scorrimento UV orizzontale (tile/secondo)
 #define WATER_FLOW_SPEED_V    0.8f   // Velocità scorrimento UV verticale (tile/secondo)
@@ -457,6 +457,13 @@ bool dsMapCanMove(int from_gx, int from_gy, int to_gx, int to_gy) {
     float h0 = dsGridHeight[from_gy][from_gx];
     float h1 = dsGridHeight[to_gy][to_gx];
     return fabsf(h0 - h1) <= 0.6f;
+}
+
+bool dsMapIsWildGrass(int gx, int gy) {
+    if (gx < 0 || gx >= DS_GRID_SIZE || gy < 0 || gy >= DS_GRID_SIZE) {
+        return false;
+    }
+    return dsGridHasGrass[gy][gx];
 }
 
 float dsMapGetWorldPos(float grid_x, float grid_y, float* out_x, float* out_y, float* out_z) {

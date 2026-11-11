@@ -32,7 +32,7 @@
 #define PLAYER_MOVE_SPEED (1.0f / 16.0f) // 16 frame per percorrere 1 tile (1px/frame a 60fps)
 
 // Configurazione angolo telecamera
-#define CAM_ANGLE_DEG     56.0f  // Angolo di inclinazione della telecamera (in gradi)
+#define CAM_ANGLE_DEG     60.0f  // Angolo di inclinazione della telecamera (in gradi)
 #define CAM_DIST          200.0f // Distanza della telecamera dal giocatore
 
 // Struttura vertice per il rendering 3D dei tile e del giocatore
