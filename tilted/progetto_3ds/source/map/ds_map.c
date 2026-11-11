@@ -22,6 +22,25 @@ typedef enum {
     DS_TILE_SOLID
 } DsTileType;
 
+// Parametri onde e animazione 3D dell'acqua (Solution 5: sea_lm1)
+#define DS_MAP_WATER_GROUP    11
+#define WATER_WAVE_SPEED      3.0f   // Velocità oscillazione onde 3D
+#define WATER_WAVE_HEIGHT     2.0f   // Altezza/ampiezza onde 3D (unità mondo)
+#define WATER_FLOW_SPEED_U    1.2f   // Velocità scorrimento UV orizzontale (tile/secondo)
+#define WATER_FLOW_SPEED_V    0.8f   // Velocità scorrimento UV verticale (tile/secondo)
+#define WATER_RIPPLE_AMP      0.15f  // Increspatura dinamica UV legata all'onda
+
+typedef struct {
+    float y;
+    float u;
+    float v;
+} WaterBaseVertex;
+
+static WaterBaseVertex* dsWaterBase = NULL;
+static u32              dsWaterVertexCount = 0;
+static u32              dsWaterFirst = 0;
+static float            dsWaterAnimTime = 0.0f;
+
 static bool           dsReady  = false;
 static TileVertex*    dsVbo    = NULL;
 static u32            dsVertexCount = 0;
@@ -349,6 +368,24 @@ void dsMapInit(void) {
     // 6. Genera la griglia di collisione (con filtro tronchi/foglie/entrate)
     dsBuildCollisionGrid();
 
+    // 7. Salva la geometria base dell'acqua per l'animazione 3D e UV (Solution 5)
+    if (DS_MAP_WATER_GROUP < DS_MAP_GROUP_COUNT) {
+        dsWaterVertexCount = dsGroups[DS_MAP_WATER_GROUP].vertexCount;
+        dsWaterFirst = dsFirst[DS_MAP_WATER_GROUP];
+        if (dsWaterVertexCount > 0) {
+            dsWaterBase = (WaterBaseVertex*)malloc(dsWaterVertexCount * sizeof(WaterBaseVertex));
+            if (dsWaterBase) {
+                for (u32 i = 0; i < dsWaterVertexCount; ++i) {
+                    TileVertex* d = &dsVbo[dsWaterFirst + i];
+                    dsWaterBase[i].y = d->y;
+                    dsWaterBase[i].u = d->u;
+                    dsWaterBase[i].v = d->v;
+                }
+            }
+        }
+    }
+    dsWaterAnimTime = 0.0f;
+
     dsReady = true;
 }
 
@@ -365,6 +402,12 @@ void dsMapExit(void) {
             C3D_TexDelete(&dsFlowerTex);
             dsFlowerTexReady = false;
         }
+        if (dsWaterBase) {
+            free(dsWaterBase);
+            dsWaterBase = NULL;
+        }
+        dsWaterVertexCount = 0;
+        dsWaterFirst = 0;
     }
     if (dsVbo) {
         linearFree(dsVbo);
@@ -447,6 +490,9 @@ void dsMapUpdate(u32 kHeld, u32 kDown) {
     if (dsDist < DS_CAM_DIST_MIN) dsDist = DS_CAM_DIST_MIN;
     if (dsDist > DS_CAM_DIST_MAX) dsDist = DS_CAM_DIST_MAX;
 
+    // Avanza il timer delle onde e dell'acqua (60fps)
+    dsWaterAnimTime += 1.0f / 60.0f;
+
     // Muove il giocatore sulla mappa DS (D-Pad o Circle Pad)
     playerUpdate(kDown, kHeld);
 }
@@ -473,6 +519,32 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
     // Z-buffer attivo: le foglie degli alberi (più alte e più vicine alla camera)
     // coprono automaticamente il giocatore quando ci cammina sotto!
     C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
+
+    // Aggiorna i vertici dell'acqua in VBO (Solution 5: onde 3D + increspatura e scorrimento UV)
+    if (dsWaterBase && dsWaterVertexCount > 0 && dsVbo) {
+        float t = dsWaterAnimTime * WATER_WAVE_SPEED;
+        float uShift = dsWaterAnimTime * WATER_FLOW_SPEED_U;
+        float vShift = dsWaterAnimTime * WATER_FLOW_SPEED_V;
+
+        for (u32 i = 0; i < dsWaterVertexCount; ++i) {
+            TileVertex* d = &dsVbo[dsWaterFirst + i];
+            float base_y = dsWaterBase[i].y;
+            float base_u = dsWaterBase[i].u;
+            float base_v = dsWaterBase[i].v;
+
+            // Oscillazione fisica 3D dell'onda (direzione da in alto a destra verso in basso a sinistra)
+            float wave1 = sinf(t + d->x * 0.015f - d->z * 0.012f) * (WATER_WAVE_HEIGHT * 0.7f);
+            float wave2 = cosf(t * 1.35f + d->x * 0.010f - d->z * 0.018f) * (WATER_WAVE_HEIGHT * 0.3f);
+            d->y = base_y + wave1 + wave2;
+
+            // Scorrimento e increspatura UV della texture dell'acqua (flusso da in alto a destra verso in basso a sinistra)
+            float uRipple = sinf(t * 1.5f + d->x * 0.02f) * WATER_RIPPLE_AMP;
+            float vRipple = cosf(t * 1.2f - d->z * 0.02f) * WATER_RIPPLE_AMP;
+            d->u = base_u + uShift + uRipple;
+            d->v = base_v + vShift + vRipple;
+        }
+        GSPGPU_FlushDataCache(&dsVbo[dsWaterFirst], dsWaterVertexCount * sizeof(TileVertex));
+    }
 
     C3D_BufInfo* buf = C3D_GetBufInfo();
     BufInfo_Init(buf);

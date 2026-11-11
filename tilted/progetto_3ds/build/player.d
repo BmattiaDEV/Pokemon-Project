@@ -1,6 +1,7 @@
-player.o: C:/tilted_ds/tilted/progetto_3ds/source/player/player.c \
- C:/tilted_ds/tilted/progetto_3ds/source/player/player.h \
- C:/tilted_ds/tilted/progetto_3ds/source/core/common.h \
+player.o: \
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/player/player.c \
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/player/player.h \
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h \
  C:/devkitPro/libctru/include/3ds.h \
  C:/devkitPro/libctru/include/3ds/types.h \
  C:/devkitPro/libctru/include/3ds/result.h \
@@ -106,9 +107,9 @@ player.o: C:/tilted_ds/tilted/progetto_3ds/source/player/player.c \
  C:/devkitPro/libctru/include/c3d/framebuffer.h \
  C:/devkitPro/libctru/include/c3d/renderqueue.h \
  C:/devkitPro/libctru/include/tex3ds.h \
- C:/tilted_ds/tilted/progetto_3ds/source/map/ds_map.h
-C:/tilted_ds/tilted/progetto_3ds/source/player/player.h:
-C:/tilted_ds/tilted/progetto_3ds/source/core/common.h:
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map.h
+C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/player/player.h:
+C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h:
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
@@ -214,4 +215,4 @@ C:/devkitPro/libctru/include/c3d/fog.h:
 C:/devkitPro/libctru/include/c3d/framebuffer.h:
 C:/devkitPro/libctru/include/c3d/renderqueue.h:
 C:/devkitPro/libctru/include/tex3ds.h:
-C:/tilted_ds/tilted/progetto_3ds/source/map/ds_map.h:
+C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map.h:
