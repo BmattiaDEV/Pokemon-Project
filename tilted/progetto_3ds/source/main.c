@@ -1,6 +1,7 @@
 #include "common.h"
 #include "player.h"
 #include "renderer.h"
+#include "ds_map.h"
 
 int main(int argc, char** argv) {
     (void)argc;
@@ -10,8 +11,8 @@ int main(int argc, char** argv) {
     C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
     C3D_CullFace(GPU_CULL_NONE);
 
-    // Posiziona il giocatore al centro del sentiero (x = 8, y = 8)
-    playerInit(8, 8);
+    // Posiziona il giocatore al centro del prato della mappa DS (x = 18, y = 14)
+    playerInit(18, 14);
     rendererInit();
 
     while (aptMainLoop()) {
@@ -20,7 +21,7 @@ int main(int argc, char** argv) {
         u32 kHeld = hidKeysHeld();
         if (kDown & KEY_START) break;
 
-        playerUpdate(kDown, kHeld);
+        dsMapUpdate(kHeld, kDown);
         rendererDrawFrame();
     }
 

@@ -1,7 +1,6 @@
-player.o: \
- C:/github/terrain_generatio/tilted/progetto_3ds/source/player/player.c \
- C:/github/terrain_generatio/tilted/progetto_3ds/source/player/player.h \
- C:/github/terrain_generatio/tilted/progetto_3ds/source/core/common.h \
+player.o: C:/tilted_ds/tilted/progetto_3ds/source/player/player.c \
+ C:/tilted_ds/tilted/progetto_3ds/source/player/player.h \
+ C:/tilted_ds/tilted/progetto_3ds/source/core/common.h \
  C:/devkitPro/libctru/include/3ds.h \
  C:/devkitPro/libctru/include/3ds/types.h \
  C:/devkitPro/libctru/include/3ds/result.h \
@@ -107,13 +106,9 @@ player.o: \
  C:/devkitPro/libctru/include/c3d/framebuffer.h \
  C:/devkitPro/libctru/include/c3d/renderqueue.h \
  C:/devkitPro/libctru/include/tex3ds.h \
- C:/github/terrain_generatio/tilted/progetto_3ds/source/world/collision.h \
- C:/github/terrain_generatio/tilted/progetto_3ds/source/world/world.h \
- C:/github/terrain_generatio/tilted/progetto_3ds/source/map/map_data.h \
- C:/github/terrain_generatio/tilted/progetto_3ds/source/map/tileset_defs.h \
- C:/github/terrain_generatio/tilted/progetto_3ds/source/world/events.h
-C:/github/terrain_generatio/tilted/progetto_3ds/source/player/player.h:
-C:/github/terrain_generatio/tilted/progetto_3ds/source/core/common.h:
+ C:/tilted_ds/tilted/progetto_3ds/source/map/ds_map.h
+C:/tilted_ds/tilted/progetto_3ds/source/player/player.h:
+C:/tilted_ds/tilted/progetto_3ds/source/core/common.h:
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
@@ -219,8 +214,4 @@ C:/devkitPro/libctru/include/c3d/fog.h:
 C:/devkitPro/libctru/include/c3d/framebuffer.h:
 C:/devkitPro/libctru/include/c3d/renderqueue.h:
 C:/devkitPro/libctru/include/tex3ds.h:
-C:/github/terrain_generatio/tilted/progetto_3ds/source/world/collision.h:
-C:/github/terrain_generatio/tilted/progetto_3ds/source/world/world.h:
-C:/github/terrain_generatio/tilted/progetto_3ds/source/map/map_data.h:
-C:/github/terrain_generatio/tilted/progetto_3ds/source/map/tileset_defs.h:
-C:/github/terrain_generatio/tilted/progetto_3ds/source/world/events.h:
+C:/tilted_ds/tilted/progetto_3ds/source/map/ds_map.h:

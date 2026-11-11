@@ -1,13 +1,10 @@
 #pragma once
 
-// Inizializza la pipeline grafica 3D (target schermo, shader, telecamera, texture .t3x e VBO mappa)
+// Inizializza la pipeline grafica 3D (target schermo, shader, telecamera e modello mappa DS)
 void rendererInit(void);
-
-// Ricostruisce il VBO della mappa attiva e aggiorna il binding GPU (chiamato al cambio mappa)
-void rendererReloadMap(void);
 
 // Disegna un singolo frame 3D sullo schermo superiore
 void rendererDrawFrame(void);
 
-// Rilascia le risorse grafiche (VBO, shader, texture)
+// Rilascia le risorse grafiche (shader, texture e mappa DS)
 void rendererExit(void);

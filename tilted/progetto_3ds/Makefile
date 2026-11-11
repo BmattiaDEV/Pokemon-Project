@@ -15,9 +15,9 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET      := $(notdir $(CURDIR))
 BUILD       := build
-SOURCES     := source source/core source/map source/world source/player source/render
+SOURCES     := source source/core source/map source/player source/render
 DATA        := data
-INCLUDES    := source source/core source/map source/world source/player source/render
+INCLUDES    := source source/core source/map source/player source/render
 
 #---------------------------------------------------------------------------------
 # Opzioni di compilazione
@@ -59,8 +59,11 @@ CPPFILES    := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES      := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 
 # Includiamo eventuali .bin in data/ e i file binari generati (.t3x e .shbin)
+# Texture della mappa DS: ogni data/ds_map/*.png diventa un .t3x (vedi ds_map/LEGGIMI.md)
+DS_MAP_TEX  := $(patsubst %.png,%.t3x,$(notdir $(wildcard $(DATA)/ds_map/*.png)))
+
 BINFILES    := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.bin))) \
-               tileset.t3x player.t3x vshader.shbin
+               player.t3x flower_overlay.t3x vshader.shbin $(DS_MAP_TEX)
 
 #---------------------------------------------------------------------------------
 ifeq ($(strip $(CPPFILES)),)
@@ -141,21 +144,32 @@ vshader.shbin.o vshader_shbin.h: vshader.shbin
 	@$(bin2o)
 
 #---------------------------------------------------------------------------------
-# Compilazione Texture (tex3ds) - Usa outdoor.png e player.png presenti in data/
+# Compilazione Texture Giocatore (tex3ds)
 #---------------------------------------------------------------------------------
-tileset.t3x: ../data/outdoor.png
-	@echo Converting $(notdir $<) to $@...
-	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
-
-tileset.t3x.o tileset_t3x.h: tileset.t3x
-	@echo $(notdir $<)
-	@$(bin2o)
-
 player.t3x: ../data/player.png
 	@echo Converting $(notdir $<) to $@...
 	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
 
 player.t3x.o player_t3x.h: player.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+flower_overlay.t3x: ../data/flower_overlay.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+flower_overlay.t3x.o flower_overlay_t3x.h: flower_overlay.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+#---------------------------------------------------------------------------------
+# Texture della mappa DS (regola generica per ogni PNG in data/ds_map/)
+#---------------------------------------------------------------------------------
+%.t3x: ../data/ds_map/%.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+%.t3x.o %_t3x.h: %.t3x
 	@echo $(notdir $<)
 	@$(bin2o)
 
