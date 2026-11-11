@@ -63,7 +63,9 @@ SFILES      := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 DS_MAP_TEX  := $(patsubst %.png,%.t3x,$(notdir $(wildcard $(DATA)/ds_map/*.png)))
 
 BINFILES    := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.bin))) \
-               player.t3x flower_overlay.t3x grass_overlay.t3x vshader.shbin $(DS_MAP_TEX)
+               player.t3x flower_overlay.t3x grass_overlay.t3x \
+               battle_bg.t3x battle_base_enemy.t3x battle_base_player.t3x battle_opponents.t3x battle_player.t3x \
+               vshader.shbin $(DS_MAP_TEX)
 
 #---------------------------------------------------------------------------------
 ifeq ($(strip $(CPPFILES)),)
@@ -167,6 +169,46 @@ grass_overlay.t3x: ../data/grass_overlay.png
 	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
 
 grass_overlay.t3x.o grass_overlay_t3x.h: grass_overlay.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+battle_bg.t3x: ../data/battle_bg.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+battle_bg.t3x.o battle_bg_t3x.h: battle_bg.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+battle_base_enemy.t3x: ../data/battle_base_enemy.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+battle_base_enemy.t3x.o battle_base_enemy_t3x.h: battle_base_enemy.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+battle_base_player.t3x: ../data/battle_base_player.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+battle_base_player.t3x.o battle_base_player_t3x.h: battle_base_player.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+battle_opponents.t3x: ../data/battle_opponents.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+battle_opponents.t3x.o battle_opponents_t3x.h: battle_opponents.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+battle_player.t3x: ../data/battle_player.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+battle_player.t3x.o battle_player_t3x.h: battle_player.t3x
 	@echo $(notdir $<)
 	@$(bin2o)
 

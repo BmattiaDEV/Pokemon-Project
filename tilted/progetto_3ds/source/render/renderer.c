@@ -2,6 +2,7 @@
 #include "common.h"
 #include "vshader_shbin.h"
 #include "ds_map.h"
+#include "battle_scene.h"
 
 static DVLB_s*           vshader_dvlb = NULL;
 static shaderProgram_s   program;
@@ -47,6 +48,9 @@ void rendererInit(void) {
 
     // 6. Carica la mappa importata da DS Map Studio (texture e vertici)
     dsMapInit();
+
+    // 7. Inizializza la scena di combattimento / incontro
+    battleSceneInit();
 }
 
 void rendererDrawFrame(void) {
@@ -64,7 +68,16 @@ void rendererDrawBlackFrame(void) {
     C3D_FrameEnd(0);
 }
 
+void rendererDrawEncounterFrame(int wild_mon_index) {
+    C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+    C3D_FrameDrawOn(topScreen);
+    C3D_RenderTargetClear(topScreen, C3D_CLEAR_ALL, 0x000000FF, 0);
+    battleSceneDraw(uLoc_projection, uLoc_view, wild_mon_index, 0);
+    C3D_FrameEnd(0);
+}
+
 void rendererExit(void) {
+    battleSceneExit();
     dsMapExit();
     shaderProgramFree(&program);
     if (vshader_dvlb) {

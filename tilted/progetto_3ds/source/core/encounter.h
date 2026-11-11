@@ -13,6 +13,9 @@ void encounterInit(void);
 // Restituisce lo stato corrente (mondo o incontro)
 GameState encounterGetState(void);
 
+// Restituisce l'indice del Pokemon selvatico dell'incontro corrente (0..3)
+int encounterGetWildMonIndex(void);
+
 // Chiamata quando il giocatore atterra su una nuova casella (gx, gy)
 void encounterOnStep(int gx, int gy);
 

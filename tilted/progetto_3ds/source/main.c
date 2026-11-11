@@ -28,11 +28,11 @@ int main(int argc, char** argv) {
             if (kDown & KEY_A) {
                 encounterDismiss();
             }
-            rendererDrawBlackFrame();
+            rendererDrawEncounterFrame(encounterGetWildMonIndex());
         } else {
             dsMapUpdate(kHeld, kDown);
             if (encounterGetState() == GAME_STATE_ENCOUNTER) {
-                rendererDrawBlackFrame();
+                rendererDrawEncounterFrame(encounterGetWildMonIndex());
             } else {
                 rendererDrawFrame();
             }
