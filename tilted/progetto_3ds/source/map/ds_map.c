@@ -3,6 +3,7 @@
 #include "player.h"
 #include "player_t3x.h"
 #include "flower_overlay_t3x.h"
+#include "grass_overlay_t3x.h"
 
 // Scala 1:1 con i tile del gioco: 32 unità OBJ * 16.0f (TILE_W) = 512.0f
 #define DS_GRID_SIZE       32
@@ -46,6 +47,7 @@ static TileVertex*    dsVbo    = NULL;
 static u32            dsVertexCount = 0;
 static u32            dsPlayerFirst = 0;
 static u32            dsFlowerFirst = 0;
+static u32            dsGrassFirst  = 0;
 static u32            dsFirst[DS_MAP_GROUP_COUNT];
 static DsMapGroupData dsGroups[DS_MAP_GROUP_COUNT];
 static C3D_Tex        dsTex[DS_MAP_GROUP_COUNT];
@@ -53,7 +55,10 @@ static C3D_Tex        dsPlayerTex;
 static bool           dsPlayerTexReady = false;
 static C3D_Tex        dsFlowerTex;
 static bool           dsFlowerTexReady = false;
+static C3D_Tex        dsGrassTex;
+static bool           dsGrassTexReady = false;
 static bool           dsGridHasFlowers[DS_GRID_SIZE][DS_GRID_SIZE];
+static bool           dsGridHasGrass[DS_GRID_SIZE][DS_GRID_SIZE];
 static bool           dsGridHasShadow[DS_GRID_SIZE][DS_GRID_SIZE];
 static C3D_Mtx        dsView;
 
@@ -128,22 +133,24 @@ static void dsBuildCollisionGrid(void) {
     // 10: seaside3_lm67 (spiaggia/riva), 11: sea_lm1 (mare: SOLIDO)
     // 12: rhana (fiori: CALPESTABILE)
     // 13: fenter_lm6 (ombra entrata foresta: CALPESTABILE, passaggio verso altre mappe)
-    // 14: lgreenp_lm2 (erba chiara: CALPESTABILE)
-    // 15: wcliff_lm4, 16: searock_lm15 (scogli: SOLIDO)
+    // 14: nectgr_lm42 (prato/erba fiorita: CALPESTABILE)
+    // 15: lgreenp_lm2 (erba alta/chiara: CALPESTABILE)
+    // 16: wcliff_lm4, 17: searock_lm15 (scogli: SOLIDO)
 
-    const int walkable_groups[] = { 0, 12, 13, 14 };
-    const int cliff_groups[]    = { 5, 6, 7, 8, 15, 16 };
+    const int walkable_groups[] = { 0, 12, 13, 14, 15 };
+    const int cliff_groups[]    = { 5, 6, 7, 8, 16, 17 };
 
     for (int gy = 0; gy < DS_GRID_SIZE; ++gy) {
         for (int gx = 0; gx < DS_GRID_SIZE; ++gx) {
             dsGridType[gy][gx]       = DS_TILE_VOID;
             dsGridHeight[gy][gx]     = 2.0f;
             dsGridHasFlowers[gy][gx] = false;
+            dsGridHasGrass[gy][gx]   = false;
             dsGridHasShadow[gy][gx]  = false;
         }
     }
 
-    // 1. Terreno calpestabile (erba, fiori, entrata foresta, erba chiara, spiaggia alta)
+    // 1. Terreno calpestabile (erba, fiori, entrata foresta, erba alta, prato, spiaggia alta)
     for (int gy = 0; gy < DS_GRID_SIZE; ++gy) {
         for (int gx = 0; gx < DS_GRID_SIZE; ++gx) {
             float ox, oy, z_hit;
@@ -160,6 +167,7 @@ static void dsBuildCollisionGrid(void) {
                         dsGridHeight[gy][gx] = roundf(z_hit);
                         if (g == 12) dsGridHasFlowers[gy][gx] = true;
                         if (g == 13) dsGridHasShadow[gy][gx]  = true;
+                        if (g == 14) dsGridHasGrass[gy][gx]   = true; // Solo nectgr_lm42 è erba alta (il sentiero lgreenp_lm2 non è erba)
                     }
                 }
             }
@@ -318,10 +326,11 @@ void dsMapInit(void) {
     if (extent <= 0.0f) extent = 1.0f;
     dsScale = DS_FIT_SIZE / extent;
 
-    // 2. Buffer dei vertici della mappa, del giocatore (+6) e dell'overlay fiori (+24) in linear RAM
+    // 2. Buffer dei vertici della mappa, del giocatore (+6), overlay fiori (+24) e overlay erba (+24) in linear RAM
     dsPlayerFirst = dsVertexCount;
     dsFlowerFirst = dsVertexCount + 6;
-    dsVbo = (TileVertex*)linearAlloc((dsVertexCount + 6 + 24) * sizeof(TileVertex));
+    dsGrassFirst  = dsVertexCount + 6 + 24;
+    dsVbo = (TileVertex*)linearAlloc((dsVertexCount + 6 + 24 + 24) * sizeof(TileVertex));
     if (!dsVbo) return;
 
     for (u32 g = 0; g < DS_MAP_GROUP_COUNT; ++g) {
@@ -365,6 +374,15 @@ void dsMapInit(void) {
         dsFlowerTexReady = true;
     }
 
+    // 6. Texture overlay dell'erba alta (per coprire i piedi del personaggio nelle zolle d'erba alta)
+    Tex3DS_Texture gt3x = Tex3DS_TextureImport(grass_overlay_t3x, grass_overlay_t3x_size, &dsGrassTex, NULL, false);
+    if (gt3x) {
+        Tex3DS_TextureFree(gt3x);
+        C3D_TexSetFilter(&dsGrassTex, GPU_NEAREST, GPU_NEAREST);
+        C3D_TexSetWrap(&dsGrassTex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
+        dsGrassTexReady = true;
+    }
+
     // 6. Genera la griglia di collisione (con filtro tronchi/foglie/entrate)
     dsBuildCollisionGrid();
 
@@ -401,6 +419,10 @@ void dsMapExit(void) {
         if (dsFlowerTexReady) {
             C3D_TexDelete(&dsFlowerTex);
             dsFlowerTexReady = false;
+        }
+        if (dsGrassTexReady) {
+            C3D_TexDelete(&dsGrassTex);
+            dsGrassTexReady = false;
         }
         if (dsWaterBase) {
             free(dsWaterBase);
@@ -497,6 +519,57 @@ void dsMapUpdate(u32 kHeld, u32 kDown) {
     playerUpdate(kDown, kHeld);
 }
 
+static void buildFlowerOverlayQuad(TileVertex* fv, int gx, int gy) {
+    float ox, oy;
+    gridToObjCenter((float)gx, (float)gy, &ox, &oy);
+    float twx = (ox - dsCenterX) * dsScale;
+    float twy = (dsGridHeight[gy][gx] - dsMinZ) * dsScale;
+    float twz = -(oy - dsCenterY) * dsScale;
+
+    float half_s = 0.5f * dsScale;
+    float x_left  = twx - half_s;
+    float x_right = twx + half_s;
+    float z_north = twz - half_s;
+    float z_south = twz + half_s;
+
+    fv[0] = (TileVertex){x_left,  twy, z_south, 0.0f, 0.0f, 0.0f, 0.0f};
+    fv[1] = (TileVertex){x_right, twy, z_south, 1.0f, 0.0f, 0.0f, 0.0f};
+    fv[2] = (TileVertex){x_right, twy, z_north, 1.0f, 1.0f, 0.0f, 0.0f};
+
+    fv[3] = (TileVertex){x_left,  twy, z_south, 0.0f, 0.0f, 0.0f, 0.0f};
+    fv[4] = (TileVertex){x_right, twy, z_north, 1.0f, 1.0f, 0.0f, 0.0f};
+    fv[5] = (TileVertex){x_left,  twy, z_north, 0.0f, 1.0f, 0.0f, 0.0f};
+}
+
+static void buildGrassOverlayQuad(TileVertex* fv, int gx, int gy) {
+    float ox, oy;
+    gridToObjCenter((float)gx, (float)gy, &ox, &oy);
+    float twx = (ox - dsCenterX) * dsScale;
+    float twy = (dsGridHeight[gy][gx] - dsMinZ) * dsScale;
+    float twz = -(oy - dsCenterY) * dsScale;
+
+    float half_s = 0.5f * dsScale;
+    float x_left  = twx - half_s;
+    float x_right = twx + half_s;
+    float z_north = twz - half_s;
+    float z_south = twz + half_s;
+
+    // Leggera inclinazione 3D verso il sud:
+    // - Si eleva a sufficienza da coprire le scarpe del giocatore (GPU_GEQUAL passa sopra i piedi)
+    // - Rimane ben al di sotto del corpo/torso del giocatore e della chioma degli alberi
+    //   (GPU_GEQUAL fallisce, quindi alberi, rocce e corpo del giocatore coprono naturalmente l'erba!)
+    float y_south = twy + 4.5f;
+    float y_north = twy + 1.2f;
+
+    fv[0] = (TileVertex){x_left,  y_south, z_south, 0.0f, 0.0f, 0.0f, 0.0f};
+    fv[1] = (TileVertex){x_right, y_south, z_south, 1.0f, 0.0f, 0.0f, 0.0f};
+    fv[2] = (TileVertex){x_right, y_north, z_north, 1.0f, 1.0f, 0.0f, 0.0f};
+
+    fv[3] = (TileVertex){x_left,  y_south, z_south, 0.0f, 0.0f, 0.0f, 0.0f};
+    fv[4] = (TileVertex){x_right, y_north, z_north, 1.0f, 1.0f, 0.0f, 0.0f};
+    fv[5] = (TileVertex){x_left,  y_north, z_north, 0.0f, 1.0f, 0.0f, 0.0f};
+}
+
 void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
     float px, py, pz;
     playerGetWorldPos(&px, &py, &pz);
@@ -566,7 +639,7 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
         C3D_DrawArrays(GPU_TRIANGLES, (int)dsPlayerFirst, 6);
     }
 
-    // 3. Disegna l'overlay dei fiori in primo piano (solo la metà anteriore, fiore 2)
+    // 3. Disegna l'overlay dei fiori in primo piano come prima (solo metà anteriore del fiore)
     //    quando il giocatore si trova sopra una cella con fiori
     if (dsFlowerTexReady && dsVbo) {
         float pgx, pgy;
@@ -584,7 +657,7 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
                 if (!dsGridHasFlowers[gy][gx]) continue;
                 if (flowerQuads >= 4) break;
 
-                // Controllo Z:
+                // Controllo Z originale dei fiori:
                 // Se il personaggio ha meno Z (è davanti al fiore, pgy > gy + 0.35f),
                 // tutto il fiore deve rimanere DIETRO al personaggio (nessun overlay in primo piano).
                 // Se hanno la stessa Z (pgy circa uguale a gy, entro [-0.45, +0.35]),
@@ -599,27 +672,7 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
                     continue; // Non sovrapposto orizzontalmente
                 }
 
-                float ox, oy;
-                gridToObjCenter((float)gx, (float)gy, &ox, &oy);
-                float twx = (ox - dsCenterX) * dsScale;
-                float twy = (dsGridHeight[gy][gx] - dsMinZ) * dsScale;
-                float twz = -(oy - dsCenterY) * dsScale;
-
-                float half_s = 0.5f * dsScale;
-                float x_left  = twx - half_s;
-                float x_right = twx + half_s;
-                float z_north = twz - half_s;
-                float z_south = twz + half_s;
-
-                TileVertex* fv = &dsVbo[dsFlowerFirst + flowerQuads * 6];
-                fv[0] = (TileVertex){x_left,  twy, z_south, 0.0f, 0.0f, 0.0f, 0.0f};
-                fv[1] = (TileVertex){x_right, twy, z_south, 1.0f, 0.0f, 0.0f, 0.0f};
-                fv[2] = (TileVertex){x_right, twy, z_north, 1.0f, 1.0f, 0.0f, 0.0f};
-
-                fv[3] = (TileVertex){x_left,  twy, z_south, 0.0f, 0.0f, 0.0f, 0.0f};
-                fv[4] = (TileVertex){x_right, twy, z_north, 1.0f, 1.0f, 0.0f, 0.0f};
-                fv[5] = (TileVertex){x_left,  twy, z_north, 0.0f, 1.0f, 0.0f, 0.0f};
-
+                buildFlowerOverlayQuad(&dsVbo[dsFlowerFirst + flowerQuads * 6], gx, gy);
                 flowerQuads++;
             }
         }
@@ -630,6 +683,43 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
             C3D_DepthTest(true, GPU_ALWAYS, GPU_WRITE_ALL);
             C3D_TexBind(0, &dsFlowerTex);
             C3D_DrawArrays(GPU_TRIANGLES, (int)dsFlowerFirst, (int)(flowerQuads * 6));
+            C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
+        }
+    }
+
+    // 4. Disegna l'overlay dell'erba alta in primo piano (solo nectgr_lm42)
+    //    con inclinazione 3D e Z-buffer per coprire le scarpe ma restare dietro ad alberi e ostacoli
+    if (dsGrassTexReady && dsVbo) {
+        float pgx, pgy;
+        playerGetGridPos(&pgx, &pgy);
+
+        int min_gx = (int)floorf(pgx - 1.0f);
+        int max_gx = (int)ceilf(pgx + 1.0f);
+        int min_gy = (int)floorf(pgy - 1.0f);
+        int max_gy = (int)ceilf(pgy + 1.0f);
+        if (min_gx < 0) min_gx = 0;
+        if (max_gx >= DS_GRID_SIZE) max_gx = DS_GRID_SIZE - 1;
+        if (min_gy < 0) min_gy = 0;
+        if (max_gy >= DS_GRID_SIZE) max_gy = DS_GRID_SIZE - 1;
+
+        u32 grassQuads = 0;
+        for (int gy = min_gy; gy <= max_gy; ++gy) {
+            for (int gx = min_gx; gx <= max_gx; ++gx) {
+                if (!playerShouldOverlayTile(gx, gy)) continue;
+                if (!dsGridHasGrass[gy][gx]) continue;
+                if (grassQuads >= 4) break;
+
+                buildGrassOverlayQuad(&dsVbo[dsGrassFirst + grassQuads * 6], gx, gy);
+                grassQuads++;
+            }
+        }
+
+        if (grassQuads > 0) {
+            GSPGPU_FlushDataCache(&dsVbo[dsGrassFirst], grassQuads * 6 * sizeof(TileVertex));
+
+            C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_COLOR);
+            C3D_TexBind(0, &dsGrassTex);
+            C3D_DrawArrays(GPU_TRIANGLES, (int)dsGrassFirst, (int)(grassQuads * 6));
             C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
         }
     }

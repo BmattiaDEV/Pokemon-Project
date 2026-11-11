@@ -63,7 +63,7 @@ SFILES      := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 DS_MAP_TEX  := $(patsubst %.png,%.t3x,$(notdir $(wildcard $(DATA)/ds_map/*.png)))
 
 BINFILES    := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.bin))) \
-               player.t3x flower_overlay.t3x vshader.shbin $(DS_MAP_TEX)
+               player.t3x flower_overlay.t3x grass_overlay.t3x vshader.shbin $(DS_MAP_TEX)
 
 #---------------------------------------------------------------------------------
 ifeq ($(strip $(CPPFILES)),)
@@ -159,6 +159,14 @@ flower_overlay.t3x: ../data/flower_overlay.png
 	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
 
 flower_overlay.t3x.o flower_overlay_t3x.h: flower_overlay.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+grass_overlay.t3x: ../data/grass_overlay.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+grass_overlay.t3x.o grass_overlay_t3x.h: grass_overlay.t3x
 	@echo $(notdir $<)
 	@$(bin2o)
 

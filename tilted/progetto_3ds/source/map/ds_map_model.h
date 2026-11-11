@@ -19,6 +19,7 @@
 #include "sea_lm1_t3x.h"
 #include "rhana_t3x.h"
 #include "fenter_lm6_t3x.h"
+#include "nectgr_lm42_t3x.h"
 #include "lgreenp_lm2_t3x.h"
 #include "wcliff_lm4_t3x.h"
 #include "searock_lm15_t3x.h"
@@ -31,16 +32,16 @@ static const float ds_ngrass_lm2[] = {
     -14.0f, -4.0f, 1.999999f, 0.0f, -1.0f,
     -13.0f, -3.0f, 1.999999f, 1.0f, 0.0f,
     -14.0f, -3.0f, 1.999999f, 0.0f, 0.0f,
-    -12.0f, -4.0f, 2.999999f, 0.0f, -5.0f,
-    -10.0f, -4.0f, 2.999999f, 2.0f, -5.0f,
-    -10.0f, 1.0f, 2.999999f, 2.0f, 0.0f,
-    -12.0f, -4.0f, 2.999999f, 0.0f, -5.0f,
-    -10.0f, 1.0f, 2.999999f, 2.0f, 0.0f,
-    -12.0f, 1.0f, 2.999999f, 0.0f, 0.0f,
-    -11.0f, 1.0f, 2.999999f, 0.0f, -3.0f,
-    -10.0f, 1.0f, 2.999999f, 1.0f, -3.0f,
+    -11.0f, -3.0f, 2.999999f, 0.0f, -1.0f,
+    -10.0f, -3.0f, 2.999999f, 1.0f, -1.0f,
+    -10.0f, -2.0f, 2.999999f, 1.0f, 0.0f,
+    -11.0f, -3.0f, 2.999999f, 0.0f, -1.0f,
+    -10.0f, -2.0f, 2.999999f, 1.0f, 0.0f,
+    -11.0f, -2.0f, 2.999999f, 0.0f, 0.0f,
+    -11.0f, 0.0f, 2.999999f, 0.0f, -4.0f,
+    -10.0f, 0.0f, 2.999999f, 1.0f, -4.0f,
     -10.0f, 4.0f, 2.999999f, 1.0f, 0.0f,
-    -11.0f, 1.0f, 2.999999f, 0.0f, -3.0f,
+    -11.0f, 0.0f, 2.999999f, 0.0f, -4.0f,
     -10.0f, 4.0f, 2.999999f, 1.0f, 0.0f,
     -11.0f, 4.0f, 2.999999f, 0.0f, 0.0f,
     -10.0f, 3.0f, 2.999999f, 0.0f, -1.0f,
@@ -104,10 +105,10 @@ static const float ds_ngrass_lm2[] = {
     1.0f, 3.0f, 2.999999f, 1.0f, 0.0f,
     0.0f, 3.0f, 2.999999f, 0.0f, 0.0f,
     2.0f, -2.0f, 2.999999f, 0.0f, -2.0f,
-    8.0f, -2.0f, 2.999999f, 6.0f, -2.0f,
-    8.0f, 0.0f, 2.999999f, 6.0f, 0.0f,
+    4.0f, -2.0f, 2.999999f, 2.0f, -2.0f,
+    4.0f, 0.0f, 2.999999f, 2.0f, 0.0f,
     2.0f, -2.0f, 2.999999f, 0.0f, -2.0f,
-    8.0f, 0.0f, 2.999999f, 6.0f, 0.0f,
+    4.0f, 0.0f, 2.999999f, 2.0f, 0.0f,
     2.0f, 0.0f, 2.999999f, 0.0f, 0.0f,
     5.0f, -8.0f, 1.999999f, 0.0f, -1.0f,
     7.0f, -8.0f, 1.999999f, 2.0f, -1.0f,
@@ -5810,7 +5811,7 @@ static const float ds_sea_lm1[] = {
     8.0f, 16.0f, 0.5f, 24.0f, 32.0f,
 };
 
-// materiale: rhana (60 vertici)
+// materiale: rhana (66 vertici)
 static const float ds_rhana[] = {
     -14.0f, -3.0f, 2.0f, 0.0f, 0.0f,
     -13.0f, -3.0f, 2.0f, 1.0f, 0.0f,
@@ -5818,6 +5819,12 @@ static const float ds_rhana[] = {
     -14.0f, -3.0f, 2.0f, 0.0f, 0.0f,
     -13.0f, 2.0f, 2.0f, 1.0f, 5.0f,
     -14.0f, 2.0f, 2.0f, 0.0f, 5.0f,
+    -11.0f, -2.0f, 3.0f, 0.0f, 0.0f,
+    -10.0f, -2.0f, 3.0f, 1.0f, 0.0f,
+    -10.0f, 0.0f, 3.0f, 1.0f, 2.0f,
+    -11.0f, -2.0f, 3.0f, 0.0f, 0.0f,
+    -10.0f, 0.0f, 3.0f, 1.0f, 2.0f,
+    -11.0f, 0.0f, 3.0f, 0.0f, 2.0f,
     -11.0f, 4.0f, 3.0f, 0.0f, 0.0f,
     -10.0f, 4.0f, 3.0f, 1.0f, 0.0f,
     -10.0f, 5.0f, 3.0f, 1.0f, 1.0f,
@@ -5888,6 +5895,28 @@ static const float ds_fenter_lm6[] = {
     7.0f, 5.0f, 2.980188f, 0.984375f, -0.015625f,
     5.0f, 3.0f, 2.980187f, 0.015625f, -0.984375f,
     7.0f, 3.0f, 2.980187f, 0.984375f, -0.984375f,
+};
+
+// materiale: nectgr_lm42 (18 vertici)
+static const float ds_nectgr_lm42[] = {
+    -11.0f, 1.0f, 2.999999f, 0.0f, 0.0f,
+    -12.0f, 1.0f, 2.999999f, -1.0f, 0.0f,
+    -12.0f, -4.0f, 3.0f, -1.0f, -5.0f,
+    -11.0f, 1.0f, 2.999999f, 0.0f, 0.0f,
+    -12.0f, -4.0f, 3.0f, -1.0f, -5.0f,
+    -11.0f, -4.0f, 3.0f, 0.0f, -5.0f,
+    -10.0f, -3.0f, 2.999999f, 0.0f, 0.0f,
+    -11.0f, -3.0f, 2.999999f, -1.0f, 0.0f,
+    -11.0f, -4.0f, 3.0f, -1.0f, -1.0f,
+    -10.0f, -3.0f, 2.999999f, 0.0f, 0.0f,
+    -11.0f, -4.0f, 3.0f, -1.0f, -1.0f,
+    -10.0f, -4.0f, 3.0f, 0.0f, -1.0f,
+    8.0f, 0.0f, 2.999999f, 0.0f, 0.0f,
+    4.0f, 0.0f, 2.999999f, -4.0f, 0.0f,
+    4.0f, -2.0f, 3.0f, -4.0f, -2.0f,
+    8.0f, 0.0f, 2.999999f, 0.0f, 0.0f,
+    4.0f, -2.0f, 3.0f, -4.0f, -2.0f,
+    8.0f, -2.0f, 3.0f, 0.0f, -2.0f,
 };
 
 // materiale: lgreenp_lm2 (36 vertici)
@@ -5986,7 +6015,7 @@ static const float ds_searock_lm15[] = {
     12.0f, -9.0f, 0.75f, 1.0f, -1.0f,
 };
 
-#define DS_MAP_GROUP_COUNT 17
+#define DS_MAP_GROUP_COUNT 18
 
 static void dsMapFillGroups(DsMapGroupData g[DS_MAP_GROUP_COUNT]) {
     // ngrass_lm2
@@ -6051,7 +6080,7 @@ static void dsMapFillGroups(DsMapGroupData g[DS_MAP_GROUP_COUNT]) {
     g[11].texSize = sea_lm1_t3x_size;
     // rhana
     g[12].verts = ds_rhana;
-    g[12].vertexCount = 60;
+    g[12].vertexCount = 66;
     g[12].tex = rhana_t3x;
     g[12].texSize = rhana_t3x_size;
     // fenter_lm6
@@ -6059,19 +6088,24 @@ static void dsMapFillGroups(DsMapGroupData g[DS_MAP_GROUP_COUNT]) {
     g[13].vertexCount = 12;
     g[13].tex = fenter_lm6_t3x;
     g[13].texSize = fenter_lm6_t3x_size;
+    // nectgr_lm42
+    g[14].verts = ds_nectgr_lm42;
+    g[14].vertexCount = 18;
+    g[14].tex = nectgr_lm42_t3x;
+    g[14].texSize = nectgr_lm42_t3x_size;
     // lgreenp_lm2
-    g[14].verts = ds_lgreenp_lm2;
-    g[14].vertexCount = 36;
-    g[14].tex = lgreenp_lm2_t3x;
-    g[14].texSize = lgreenp_lm2_t3x_size;
+    g[15].verts = ds_lgreenp_lm2;
+    g[15].vertexCount = 36;
+    g[15].tex = lgreenp_lm2_t3x;
+    g[15].texSize = lgreenp_lm2_t3x_size;
     // wcliff_lm4
-    g[15].verts = ds_wcliff_lm4;
-    g[15].vertexCount = 18;
-    g[15].tex = wcliff_lm4_t3x;
-    g[15].texSize = wcliff_lm4_t3x_size;
+    g[16].verts = ds_wcliff_lm4;
+    g[16].vertexCount = 18;
+    g[16].tex = wcliff_lm4_t3x;
+    g[16].texSize = wcliff_lm4_t3x_size;
     // searock_lm15
-    g[16].verts = ds_searock_lm15;
-    g[16].vertexCount = 30;
-    g[16].tex = searock_lm15_t3x;
-    g[16].texSize = searock_lm15_t3x_size;
+    g[17].verts = ds_searock_lm15;
+    g[17].vertexCount = 30;
+    g[17].tex = searock_lm15_t3x;
+    g[17].texSize = searock_lm15_t3x_size;
 }

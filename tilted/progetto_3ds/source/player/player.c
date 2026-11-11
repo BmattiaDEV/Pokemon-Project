@@ -178,3 +178,42 @@ void playerBuildQuad(TileVertex out_verts[6]) {
     out_verts[4] = (TileVertex){x_right, y_top, z_top, u_right, v_top,    0.0f, 0.0f};
     out_verts[5] = (TileVertex){x_left,  y_top, z_top, u_left,  v_top,    0.0f, 0.0f};
 }
+
+bool playerShouldOverlayTile(int gx, int gy) {
+    if (!s_player.moving) {
+        return (gx == s_player.grid_x && gy == s_player.grid_y);
+    }
+
+    switch (s_player.dir) {
+        case DIR_DOWN:
+            // Movimento verso il basso (Sud):
+            // Il tile a monte (grid_y) è alle spalle del personaggio e non deve
+            // MAI mostrare l'overlay sul corpo o sulla testa.
+            // Solo il tile di arrivo (target_y) mostra l'overlay non appena i piedi vi entrano.
+            if (gx == s_player.target_x && gy == s_player.target_y) {
+                return (s_player.move_progress >= 0.40f);
+            }
+            return false;
+
+        case DIR_UP:
+            // Movimento verso l'alto (Nord):
+            // Il tile di partenza (grid_y) è a Sud del personaggio e copre i piedi nei primi istanti del passo.
+            // Il tile a Nord (target_y) NON deve mostrare l'overlay durante la salita,
+            // altrimenti finisce sopra la testa e la schiena del personaggio.
+            // L'overlay del tile di arrivo si attiverà non appena il personaggio vi si ferma sopra.
+            if (gx == s_player.grid_x && gy == s_player.grid_y) {
+                return (s_player.move_progress < 0.40f);
+            }
+            return false;
+
+        case DIR_LEFT:
+        case DIR_RIGHT:
+            if (gy != s_player.grid_y) return false;
+            if (s_player.move_progress < 0.50f) {
+                return (gx == s_player.grid_x);
+            } else {
+                return (gx == s_player.target_x);
+            }
+    }
+    return false;
+}

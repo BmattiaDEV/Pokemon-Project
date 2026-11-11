@@ -54,6 +54,10 @@ newmtl fenter_lm6
 map_Kd fenter_lm6.png
 map_d fenter_lm6.png
 
+newmtl nectgr_lm42
+map_Kd nectgr_lm42.png
+map_d nectgr_lm42.png
+
 newmtl lgreenp_lm2
 map_Kd lgreenp_lm2.png
 map_d lgreenp_lm2.png

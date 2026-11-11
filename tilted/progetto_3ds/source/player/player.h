@@ -26,3 +26,6 @@ void playerGetGridPos(float* out_x, float* out_y);
 
 // Restituisce la posizione 3D nel mondo del giocatore (usata dalla telecamera per seguirlo)
 void playerGetWorldPos(float* out_x, float* out_y, float* out_z);
+
+// Determina se il tile (gx, gy) deve disegnare il proprio overlay (fiori o erba alta) sopra i piedi
+bool playerShouldOverlayTile(int gx, int gy);
