@@ -4,6 +4,16 @@
 #include "player_t3x.h"
 #include "flower_overlay_t3x.h"
 #include "grass_overlay_t3x.h"
+#include "rhana_anim0_t3x.h"
+#include "rhana_anim1_t3x.h"
+#include "rhana_anim2_t3x.h"
+#include "rhana_anim3_t3x.h"
+#include "rhana_anim4_t3x.h"
+#include "flower_overlay_anim0_t3x.h"
+#include "flower_overlay_anim1_t3x.h"
+#include "flower_overlay_anim2_t3x.h"
+#include "flower_overlay_anim3_t3x.h"
+#include "flower_overlay_anim4_t3x.h"
 
 // Scala 1:1 con i tile del gioco: 32 unità OBJ * 16.0f (TILE_W) = 512.0f
 #define DS_GRID_SIZE       32
@@ -57,6 +67,11 @@ static C3D_Tex        dsFlowerTex;
 static bool           dsFlowerTexReady = false;
 static C3D_Tex        dsGrassTex;
 static bool           dsGrassTexReady = false;
+#define FLOWER_ANIM_FRAMES 5
+static C3D_Tex        dsRhanaTex[FLOWER_ANIM_FRAMES];
+static C3D_Tex        dsFlowerOverlayTex[FLOWER_ANIM_FRAMES];
+static bool           dsFlowerAnimReady = false;
+static u32            dsFlowerAnimTicks = 0;
 static bool           dsGridHasFlowers[DS_GRID_SIZE][DS_GRID_SIZE];
 static bool           dsGridHasGrass[DS_GRID_SIZE][DS_GRID_SIZE];
 static bool           dsGridHasShadow[DS_GRID_SIZE][DS_GRID_SIZE];
@@ -383,6 +398,42 @@ void dsMapInit(void) {
         dsGrassTexReady = true;
     }
 
+    // 6b. Texture animate per i fiori (rhana su terreno + flower_overlay)
+    const void* rhana_tex_data[FLOWER_ANIM_FRAMES] = {
+        rhana_anim0_t3x, rhana_anim1_t3x, rhana_anim2_t3x, rhana_anim3_t3x, rhana_anim4_t3x
+    };
+    const size_t rhana_tex_size[FLOWER_ANIM_FRAMES] = {
+        rhana_anim0_t3x_size, rhana_anim1_t3x_size, rhana_anim2_t3x_size, rhana_anim3_t3x_size, rhana_anim4_t3x_size
+    };
+    const void* flower_ov_data[FLOWER_ANIM_FRAMES] = {
+        flower_overlay_anim0_t3x, flower_overlay_anim1_t3x, flower_overlay_anim2_t3x, flower_overlay_anim3_t3x, flower_overlay_anim4_t3x
+    };
+    const size_t flower_ov_size[FLOWER_ANIM_FRAMES] = {
+        flower_overlay_anim0_t3x_size, flower_overlay_anim1_t3x_size, flower_overlay_anim2_t3x_size, flower_overlay_anim3_t3x_size, flower_overlay_anim4_t3x_size
+    };
+
+    dsFlowerAnimReady = true;
+    for (int i = 0; i < FLOWER_ANIM_FRAMES; ++i) {
+        Tex3DS_Texture rt = Tex3DS_TextureImport(rhana_tex_data[i], rhana_tex_size[i], &dsRhanaTex[i], NULL, false);
+        if (rt) {
+            Tex3DS_TextureFree(rt);
+            C3D_TexSetFilter(&dsRhanaTex[i], GPU_NEAREST, GPU_NEAREST);
+            C3D_TexSetWrap(&dsRhanaTex[i], GPU_REPEAT, GPU_REPEAT);
+        } else {
+            dsFlowerAnimReady = false;
+        }
+
+        Tex3DS_Texture ot = Tex3DS_TextureImport(flower_ov_data[i], flower_ov_size[i], &dsFlowerOverlayTex[i], NULL, false);
+        if (ot) {
+            Tex3DS_TextureFree(ot);
+            C3D_TexSetFilter(&dsFlowerOverlayTex[i], GPU_NEAREST, GPU_NEAREST);
+            C3D_TexSetWrap(&dsFlowerOverlayTex[i], GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
+        } else {
+            dsFlowerAnimReady = false;
+        }
+    }
+    dsFlowerAnimTicks = 0;
+
     // 6. Genera la griglia di collisione (con filtro tronchi/foglie/entrate)
     dsBuildCollisionGrid();
 
@@ -423,6 +474,13 @@ void dsMapExit(void) {
         if (dsGrassTexReady) {
             C3D_TexDelete(&dsGrassTex);
             dsGrassTexReady = false;
+        }
+        if (dsFlowerAnimReady) {
+            for (int i = 0; i < FLOWER_ANIM_FRAMES; ++i) {
+                C3D_TexDelete(&dsRhanaTex[i]);
+                C3D_TexDelete(&dsFlowerOverlayTex[i]);
+            }
+            dsFlowerAnimReady = false;
         }
         if (dsWaterBase) {
             free(dsWaterBase);
@@ -521,6 +579,9 @@ void dsMapUpdate(u32 kHeld, u32 kDown) {
 
     // Avanza il timer delle onde e dell'acqua (60fps)
     dsWaterAnimTime += 1.0f / 60.0f;
+
+    // Avanza il contatore per l'animazione dei fiori
+    dsFlowerAnimTicks++;
 
     // Muove il giocatore sulla mappa DS (D-Pad o Circle Pad)
     playerUpdate(kDown, kHeld);
@@ -630,10 +691,19 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
     BufInfo_Init(buf);
     BufInfo_Add(buf, dsVbo, sizeof(TileVertex), 3, 0x210);
 
+    // Calcolo frame attivo dei fiori (oscillazione lenta destra/sinistra a 8 passi: 0 -> +1 -> +2 -> +1 -> 0 -> -1 -> -2 -> -1)
+    static const int flower_step_to_frame[8] = { 0, 1, 2, 1, 0, 3, 4, 3 };
+    int flower_step = (dsFlowerAnimTicks / 14) % 8;
+    int flower_frame = flower_step_to_frame[flower_step];
+
     // 1. Disegna tutti i materiali della mappa DS
     for (u32 g = 0; g < DS_MAP_GROUP_COUNT; ++g) {
         if (dsGroups[g].vertexCount == 0) continue;
-        C3D_TexBind(0, &dsTex[g]);
+        if (g == 12 && dsFlowerAnimReady) {
+            C3D_TexBind(0, &dsRhanaTex[flower_frame]);
+        } else {
+            C3D_TexBind(0, &dsTex[g]);
+        }
         C3D_DrawArrays(GPU_TRIANGLES, (int)dsFirst[g], (int)dsGroups[g].vertexCount);
     }
 
@@ -688,7 +758,11 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
             GSPGPU_FlushDataCache(&dsVbo[dsFlowerFirst], flowerQuads * 6 * sizeof(TileVertex));
 
             C3D_DepthTest(true, GPU_ALWAYS, GPU_WRITE_ALL);
-            C3D_TexBind(0, &dsFlowerTex);
+            if (dsFlowerAnimReady) {
+                C3D_TexBind(0, &dsFlowerOverlayTex[flower_frame]);
+            } else {
+                C3D_TexBind(0, &dsFlowerTex);
+            }
             C3D_DrawArrays(GPU_TRIANGLES, (int)dsFlowerFirst, (int)(flowerQuads * 6));
             C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
         }
