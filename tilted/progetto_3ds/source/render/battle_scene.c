@@ -6,28 +6,37 @@
 #include "battle_player_t3x.h"
 
 // ============================================================================
-// CONFIGURAZIONE SPRITE NEMICO (UCCELLINO)
+// CONFIGURAZIONE SPRITESHEET E ANIMAZIONE POKEMON NEMICO (16 FRAME IN LOOP)
 // ============================================================================
-// Dimensioni dello sprite originale nel file data/battle_opponents.png (128x256)
-#define OPPONENT_RAW_W        95.0f
-#define OPPONENT_RAW_H        135.0f
-#define OPPONENT_TEX_W        128.0f
-#define OPPONENT_TEX_H        256.0f
+// Texture data/battle_opponents.png: 1024x1024, griglia 4x4 di celle da 256x256
+// Ogni frame dell'animazione occupa un riquadro 160x160 nell'angolo in alto a sinistra della cella
+#define OPPONENT_TEX_W        1024.0f
+#define OPPONENT_TEX_H        1024.0f
+#define OPPONENT_CELL_STRIDE  256.0f
+#define OPPONENT_FRAME_W      160.0f
+#define OPPONENT_FRAME_H      160.0f
+
+// Punto di ancoraggio del corpo e delle zampe dentro il riquadro 160x160
+#define OPPONENT_ANCHOR_X     81.5f   // 34 + (95 / 2): centro del corpo
+#define OPPONENT_ANCHOR_Y     151.0f  // 16 + 135: pianta delle zampe
 
 // Posizione sulla pedana avversaria
 #define ENEMY_BASE_CENTER_X   285.0f  // Centro orizzontale della pedana d'erba
 #define ENEMY_GROUND_Y        118.0f  // Punto d'appoggio dei piedi sulla pedana
 
 // ============================================================================
-// SCALA DELL'UCCELLINO: MODIFICA QUESTO VALORE PER INGRANDIRE O RIMPICCIOLIRE!
+// SCALA E VELOCITA' DELL'UCCELLINO: MODIFICA QUESTI VALORI PER PERSONALIZZARE!
 // ============================================================================
-// Valori consigliati:
+// OPPONENT_SCALE:
 //   0.45f = molto piccolo (~43 x 61 px)
 //   0.52f = piccolo / cucciolo (~49 x 70 px)  <-- ATTUALE (stile Starly in D/P)
 //   0.60f = medio (~57 x 81 px)
 //   0.70f = grande (~67 x 95 px)
-//   1.00f = dimensione originale (95 x 135 px)
 #define OPPONENT_SCALE        0.52f
+
+// Animazione 16 sprite: ms per singolo frame (85ms = ~12 FPS, ciclo completo ~1.36s)
+#define OPPONENT_ANIM_FRAMES  16
+#define OPPONENT_FRAME_MS     85ULL
 
 static bool        s_ready = false;
 static C3D_Tex     s_texBg;
@@ -36,6 +45,8 @@ static C3D_Tex     s_texBasePlayer;
 static C3D_Tex     s_texOpponents;
 static C3D_Tex     s_texPlayer;
 static TileVertex* s_vbo = NULL;
+static u64         s_animStartMs = 0;
+static u64         s_lastDrawMs  = 0;
 
 static void setQuad(TileVertex* v, float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1) {
     // Schermo 400x240 con proiezione ortografica (Mtx_OrthoTilt):
@@ -50,18 +61,31 @@ static void setQuad(TileVertex* v, float x0, float y0, float x1, float y1, float
     v[5] = (TileVertex){ x0, y0, 0.5f, u0, v1, 0.0f, 0.0f };
 }
 
-static void updateOpponentQuad(TileVertex* v) {
-    float opp_w = OPPONENT_RAW_W * OPPONENT_SCALE;
-    float opp_h = OPPONENT_RAW_H * OPPONENT_SCALE;
-    float opp_x0 = ENEMY_BASE_CENTER_X - (opp_w * 0.5f);
-    float opp_x1 = opp_x0 + opp_w;
-    float opp_y1 = ENEMY_GROUND_Y;
-    float opp_y0 = opp_y1 - opp_h;
+static void updateOpponentQuad(TileVertex* v, int frame_idx) {
+    int idx = frame_idx % OPPONENT_ANIM_FRAMES;
+    if (idx < 0) idx += OPPONENT_ANIM_FRAMES;
+    int col = idx % 4;
+    int row = idx / 4;
 
-    float opp_u0 = 0.0f;
-    float opp_u1 = OPPONENT_RAW_W / OPPONENT_TEX_W;
-    float opp_v0 = 1.0f - (OPPONENT_RAW_H / OPPONENT_TEX_H);
-    float opp_v1 = 1.0f;
+    float frame_w  = OPPONENT_FRAME_W  * OPPONENT_SCALE;
+    float frame_h  = OPPONENT_FRAME_H  * OPPONENT_SCALE;
+    float anchor_x = OPPONENT_ANCHOR_X * OPPONENT_SCALE;
+    float anchor_y = OPPONENT_ANCHOR_Y * OPPONENT_SCALE;
+
+    float opp_x0 = ENEMY_BASE_CENTER_X - anchor_x;
+    float opp_x1 = opp_x0 + frame_w;
+    float opp_y0 = ENEMY_GROUND_Y - anchor_y;
+    float opp_y1 = opp_y0 + frame_h;
+
+    float px0 = col * OPPONENT_CELL_STRIDE;
+    float py0 = row * OPPONENT_CELL_STRIDE;
+    float px1 = px0 + OPPONENT_FRAME_W;
+    float py1 = py0 + OPPONENT_FRAME_H;
+
+    float opp_u0 = px0 / OPPONENT_TEX_W;
+    float opp_u1 = px1 / OPPONENT_TEX_W;
+    float opp_v1 = 1.0f - (py0 / OPPONENT_TEX_H);
+    float opp_v0 = 1.0f - (py1 / OPPONENT_TEX_H);
 
     setQuad(v, opp_x0, opp_y0, opp_x1, opp_y1, opp_u0, opp_v0, opp_u1, opp_v1);
 }
@@ -135,8 +159,8 @@ void battleSceneInit(void) {
         // Quad 1 (vertici 6..11): Cerchio base nemico (in alto a destra)
         setQuad(&s_vbo[6], 200.0f, 93.0f, 370.0f, 137.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 
-        // Quad 2 (vertici 12..17): Pokemon selvatico (posizionato sulla base nemica con scala proporzionale)
-        updateOpponentQuad(&s_vbo[12]);
+        // Quad 2 (vertici 12..17): Pokemon selvatico (frame 0 iniziale)
+        updateOpponentQuad(&s_vbo[12], 0);
 
         // Quad 3 (vertici 18..23): Cerchio base giocatore (in basso a sinistra, a filo con il bordo inferiore dello schermo)
         setQuad(&s_vbo[18], -30.0f, 196.0f, 250.0f, 254.0f, 0.0f, 0.0f, 1.0f, 1.0f);
@@ -149,11 +173,23 @@ void battleSceneInit(void) {
         GSPGPU_FlushDataCache(s_vbo, 30 * sizeof(TileVertex));
     }
 
+    s_animStartMs = 0;
+    s_lastDrawMs  = 0;
     s_ready = true;
 }
 
 void battleSceneDraw(int uLoc_projection, int uLoc_view, int wild_mon_index, int player_mon_index) {
+    (void)wild_mon_index;
     if (!s_ready || !s_vbo) return;
+
+    // 0. Calcola il frame corrente dell'animazione a 16 sprite in loop continuo
+    // Se si entra in un nuovo incontro (> 250ms dall'ultimo frame), riparte pulito dal frame 0
+    u64 now = osGetTime();
+    if (s_animStartMs == 0 || (now - s_lastDrawMs) > 250ULL) {
+        s_animStartMs = now;
+    }
+    s_lastDrawMs = now;
+    int opp_frame = (int)(((now - s_animStartMs) / OPPONENT_FRAME_MS) % OPPONENT_ANIM_FRAMES);
 
     // 1. Configura proiezione ortografica 2D (400x240) e matrice vista identità
     C3D_Mtx orthoProj;
@@ -172,8 +208,8 @@ void battleSceneDraw(int uLoc_projection, int uLoc_view, int wild_mon_index, int
     C3D_AlphaBlend(GPU_BLEND_ADD, GPU_BLEND_ADD, GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA, GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA);
     C3D_AlphaTest(true, GPU_GREATER, 0);
 
-    // 4. Aggiorna UV e quad in base ai Pokemon correnti
-    updateOpponentQuad(&s_vbo[12]);
+    // 4. Aggiorna UV e quad in base al frame corrente e al Pokemon del giocatore
+    updateOpponentQuad(&s_vbo[12], opp_frame);
 
     float pu0, pv0, pu1, pv1;
     getAtlasUV(player_mon_index, &pu0, &pv0, &pu1, &pv1);
