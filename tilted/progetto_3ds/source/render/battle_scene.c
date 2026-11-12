@@ -5,6 +5,30 @@
 #include "battle_opponents_t3x.h"
 #include "battle_player_t3x.h"
 
+// ============================================================================
+// CONFIGURAZIONE SPRITE NEMICO (UCCELLINO)
+// ============================================================================
+// Dimensioni dello sprite originale nel file data/battle_opponents.png (128x256)
+#define OPPONENT_RAW_W        95.0f
+#define OPPONENT_RAW_H        135.0f
+#define OPPONENT_TEX_W        128.0f
+#define OPPONENT_TEX_H        256.0f
+
+// Posizione sulla pedana avversaria
+#define ENEMY_BASE_CENTER_X   285.0f  // Centro orizzontale della pedana d'erba
+#define ENEMY_GROUND_Y        118.0f  // Punto d'appoggio dei piedi sulla pedana
+
+// ============================================================================
+// SCALA DELL'UCCELLINO: MODIFICA QUESTO VALORE PER INGRANDIRE O RIMPICCIOLIRE!
+// ============================================================================
+// Valori consigliati:
+//   0.45f = molto piccolo (~43 x 61 px)
+//   0.52f = piccolo / cucciolo (~49 x 70 px)  <-- ATTUALE (stile Starly in D/P)
+//   0.60f = medio (~57 x 81 px)
+//   0.70f = grande (~67 x 95 px)
+//   1.00f = dimensione originale (95 x 135 px)
+#define OPPONENT_SCALE        0.52f
+
 static bool        s_ready = false;
 static C3D_Tex     s_texBg;
 static C3D_Tex     s_texBaseEnemy;
@@ -24,6 +48,22 @@ static void setQuad(TileVertex* v, float x0, float y0, float x1, float y1, float
     v[3] = (TileVertex){ x0, y1, 0.5f, u0, v0, 0.0f, 0.0f };
     v[4] = (TileVertex){ x1, y0, 0.5f, u1, v1, 0.0f, 0.0f };
     v[5] = (TileVertex){ x0, y0, 0.5f, u0, v1, 0.0f, 0.0f };
+}
+
+static void updateOpponentQuad(TileVertex* v) {
+    float opp_w = OPPONENT_RAW_W * OPPONENT_SCALE;
+    float opp_h = OPPONENT_RAW_H * OPPONENT_SCALE;
+    float opp_x0 = ENEMY_BASE_CENTER_X - (opp_w * 0.5f);
+    float opp_x1 = opp_x0 + opp_w;
+    float opp_y1 = ENEMY_GROUND_Y;
+    float opp_y0 = opp_y1 - opp_h;
+
+    float opp_u0 = 0.0f;
+    float opp_u1 = OPPONENT_RAW_W / OPPONENT_TEX_W;
+    float opp_v0 = 1.0f - (OPPONENT_RAW_H / OPPONENT_TEX_H);
+    float opp_v1 = 1.0f;
+
+    setQuad(v, opp_x0, opp_y0, opp_x1, opp_y1, opp_u0, opp_v0, opp_u1, opp_v1);
 }
 
 static void getAtlasUV(int slot, float* u0, float* v0, float* u1, float* v1) {
@@ -74,7 +114,7 @@ void battleSceneInit(void) {
     C3D_TexSetFilter(&s_texBasePlayer, GPU_NEAREST, GPU_NEAREST);
     C3D_TexSetWrap(&s_texBasePlayer, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
 
-    // 4. Carica atlas Pokemon avversari
+    // 4. Carica texture Pokemon avversario
     Tex3DS_Texture t_opp = Tex3DS_TextureImport(battle_opponents_t3x, battle_opponents_t3x_size, &s_texOpponents, NULL, false);
     if (t_opp) Tex3DS_TextureFree(t_opp);
     C3D_TexSetFilter(&s_texOpponents, GPU_NEAREST, GPU_NEAREST);
@@ -95,10 +135,8 @@ void battleSceneInit(void) {
         // Quad 1 (vertici 6..11): Cerchio base nemico (in alto a destra)
         setQuad(&s_vbo[6], 200.0f, 93.0f, 370.0f, 137.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 
-        // Quad 2 (vertici 12..17): Pokemon selvatico (posizionato sulla base nemica)
-        float ou0, ov0, ou1, ov1;
-        getAtlasUV(0, &ou0, &ov0, &ou1, &ov1);
-        setQuad(&s_vbo[12], 241.0f, 32.0f, 329.0f, 120.0f, ou0, ov0, ou1, ov1);
+        // Quad 2 (vertici 12..17): Pokemon selvatico (posizionato sulla base nemica con scala proporzionale)
+        updateOpponentQuad(&s_vbo[12]);
 
         // Quad 3 (vertici 18..23): Cerchio base giocatore (in basso a sinistra, a filo con il bordo inferiore dello schermo)
         setQuad(&s_vbo[18], -30.0f, 196.0f, 250.0f, 254.0f, 0.0f, 0.0f, 1.0f, 1.0f);
@@ -134,10 +172,8 @@ void battleSceneDraw(int uLoc_projection, int uLoc_view, int wild_mon_index, int
     C3D_AlphaBlend(GPU_BLEND_ADD, GPU_BLEND_ADD, GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA, GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA);
     C3D_AlphaTest(true, GPU_GREATER, 0);
 
-    // 4. Aggiorna UV in base ai Pokemon correnti
-    float ou0, ov0, ou1, ov1;
-    getAtlasUV(wild_mon_index, &ou0, &ov0, &ou1, &ov1);
-    setQuad(&s_vbo[12], 241.0f, 32.0f, 329.0f, 120.0f, ou0, ov0, ou1, ov1);
+    // 4. Aggiorna UV e quad in base ai Pokemon correnti
+    updateOpponentQuad(&s_vbo[12]);
 
     float pu0, pv0, pu1, pv1;
     getAtlasUV(player_mon_index, &pu0, &pv0, &pu1, &pv1);

@@ -8,13 +8,6 @@ static int       s_movesToEncounter = -1; // -1 = inattivo (fuori dall'erba alta
 static bool      s_wasInGrass = false;
 static int       s_wildMonIndex = 0;
 
-static const char* const s_wildMonNames[4] = {
-    "BIDOOF",
-    "SHINX",
-    "STARLY",
-    "BUDEW"
-};
-
 int encounterGetWildMonIndex(void) {
     return s_wildMonIndex;
 }
@@ -23,7 +16,7 @@ static void updateBottomScreen(void) {
     consoleClear();
     if (s_state == GAME_STATE_ENCOUNTER) {
         printf("\x1b[11;6H*** WILD POKEMON ENCOUNTER! ***\n");
-        printf("\x1b[13;8HA wild %s appeared!\n", s_wildMonNames[s_wildMonIndex]);
+        printf("\x1b[13;8HA wild POKEMON appeared!\n");
         printf("\x1b[16;10HPress (A) to return...\n");
     } else if (s_movesToEncounter >= 0) {
         printf("\x1b[14;10Hmove to encounter: %d\n", s_movesToEncounter);
@@ -56,7 +49,7 @@ void encounterOnStep(int gx, int gy) {
             s_movesToEncounter--;
             if (s_movesToEncounter <= 0) {
                 s_movesToEncounter = 0;
-                s_wildMonIndex = rand() % 4;
+                s_wildMonIndex = 0;
                 s_state = GAME_STATE_ENCOUNTER;
             }
             updateBottomScreen();
