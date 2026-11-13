@@ -109,7 +109,9 @@ main.o: \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/player/player.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/renderer.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/encounter.h
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/encounter.h \
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/audio.h \
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/twilight_outpost_wav.h
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h:
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
@@ -220,3 +222,5 @@ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/playe
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/renderer.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/encounter.h:
+C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/audio.h:
+C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/twilight_outpost_wav.h:

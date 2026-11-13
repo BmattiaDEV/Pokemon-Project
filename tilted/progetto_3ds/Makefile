@@ -63,6 +63,7 @@ SFILES      := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 DS_MAP_TEX  := $(patsubst %.png,%.t3x,$(notdir $(wildcard $(DATA)/ds_map/*.png)))
 
 BINFILES    := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.bin))) \
+               $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.wav))) \
                player.t3x flower_overlay.t3x grass_overlay.t3x \
                battle_bg.t3x battle_base_enemy.t3x battle_base_player.t3x battle_opponents.t3x battle_player.t3x \
                vshader.shbin $(DS_MAP_TEX)
@@ -131,6 +132,10 @@ $(OFILES_SRC)   : $(OFILES_BIN)
 # Regola base per bin2o
 #---------------------------------------------------------------------------------
 %.bin.o : %.bin
+	@echo $(notdir $<)
+	@$(bin2o)
+
+%.wav.o %_wav.h : %.wav
 	@echo $(notdir $<)
 	@$(bin2o)
 

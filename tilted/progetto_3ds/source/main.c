@@ -3,6 +3,8 @@
 #include "renderer.h"
 #include "ds_map.h"
 #include "encounter.h"
+#include "audio.h"
+#include "twilight_outpost_wav.h"
 
 int main(int argc, char** argv) {
     (void)argc;
@@ -12,6 +14,10 @@ int main(int argc, char** argv) {
     consoleInit(GFX_BOTTOM, NULL);
     C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
     C3D_CullFace(GPU_CULL_NONE);
+
+    // Avvia l'audio e la musica di sottofondo in loop
+    audioInit();
+    audioPlayLoopingWav(twilight_outpost_wav, twilight_outpost_wav_size);
 
     // Posiziona il giocatore al centro del prato della mappa DS (x = 18, y = 14)
     playerInit(18, 14);
@@ -40,6 +46,7 @@ int main(int argc, char** argv) {
     }
 
     rendererExit();
+    audioExit();
     C3D_Fini();
     gfxExit();
     return 0;
