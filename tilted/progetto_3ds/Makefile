@@ -65,7 +65,7 @@ DS_MAP_TEX  := $(patsubst %.png,%.t3x,$(notdir $(wildcard $(DATA)/ds_map/*.png))
 BINFILES    := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.bin))) \
                $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.wav))) \
                player.t3x flower_overlay.t3x grass_overlay.t3x \
-               battle_bg.t3x battle_base_enemy.t3x battle_base_player.t3x battle_opponents.t3x battle_player.t3x \
+               battle_bg.t3x battle_base_enemy.t3x battle_base_player.t3x uccello_front.t3x uccello_back.t3x \
                vshader.shbin $(DS_MAP_TEX)
 
 #---------------------------------------------------------------------------------
@@ -201,19 +201,19 @@ battle_base_player.t3x.o battle_base_player_t3x.h: battle_base_player.t3x
 	@echo $(notdir $<)
 	@$(bin2o)
 
-battle_opponents.t3x: ../data/battle_opponents.png
+uccello_front.t3x: ../data/uccello_front.png
 	@echo Converting $(notdir $<) to $@...
 	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
 
-battle_opponents.t3x.o battle_opponents_t3x.h: battle_opponents.t3x
+uccello_front.t3x.o uccello_front_t3x.h: uccello_front.t3x
 	@echo $(notdir $<)
 	@$(bin2o)
 
-battle_player.t3x: ../data/battle_player.png
+uccello_back.t3x: ../data/uccello_back.png
 	@echo Converting $(notdir $<) to $@...
 	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
 
-battle_player.t3x.o battle_player_t3x.h: battle_player.t3x
+uccello_back.t3x.o uccello_back_t3x.h: uccello_back.t3x
 	@echo $(notdir $<)
 	@$(bin2o)
 

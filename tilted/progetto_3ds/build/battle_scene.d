@@ -110,8 +110,8 @@ battle_scene.o: \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_bg_t3x.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_base_enemy_t3x.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_base_player_t3x.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_opponents_t3x.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_player_t3x.h
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/uccello_front_t3x.h \
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/uccello_back_t3x.h
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/battle_scene.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h:
 C:/devkitPro/libctru/include/3ds.h:
@@ -222,5 +222,5 @@ C:/devkitPro/libctru/include/tex3ds.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_bg_t3x.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_base_enemy_t3x.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_base_player_t3x.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_opponents_t3x.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_player_t3x.h:
+C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/uccello_front_t3x.h:
+C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/uccello_back_t3x.h:

@@ -2,43 +2,41 @@
 #include "battle_bg_t3x.h"
 #include "battle_base_enemy_t3x.h"
 #include "battle_base_player_t3x.h"
-#include "battle_opponents_t3x.h"
-#include "battle_player_t3x.h"
+#include "uccello_front_t3x.h"
+#include "uccello_back_t3x.h"
 
 // ============================================================================
-// CONFIGURAZIONE SPRITESHEET E ANIMAZIONE POKEMON NEMICO (32 FRAME IN LOOP)
+// CONFIGURAZIONE SPRITESHEET E ANIMAZIONE (32 FRAME IN LOOP: 4x8 CELLE 128x128)
 // ============================================================================
-// Texture data/battle_opponents.png: 512x1024, griglia 4x8 di celle da 128x128
-#define OPPONENT_TEX_W        512.0f
-#define OPPONENT_TEX_H        1024.0f
-#define OPPONENT_CELL_STRIDE  128.0f
-#define OPPONENT_FRAME_W      128.0f
-#define OPPONENT_FRAME_H      128.0f
+// Sia data/uccello_front.png sia data/uccello_back.png sono 512x1024 (griglia 4x8)
+#define BIRD_TEX_W           512.0f
+#define BIRD_TEX_H           1024.0f
+#define BIRD_CELL_STRIDE     128.0f
+#define BIRD_FRAME_W         128.0f
+#define BIRD_FRAME_H         128.0f
+#define BIRD_ANIM_FRAMES     32
+#define BIRD_FRAME_MS        75ULL
 
-// Punto di ancoraggio del corpo e delle zampe dentro il riquadro 128x128
-#define OPPONENT_ANCHOR_X     68.0f   // Centro bilanciato corpo/zampe
-#define OPPONENT_ANCHOR_Y     120.0f  // Pianta delle zampe (preserva il salto dei frame)
+// Avversario (front, sulla pedana in alto a destra)
+#define OPPONENT_ANCHOR_X    68.0f
+#define OPPONENT_ANCHOR_Y    120.0f
+#define ENEMY_BASE_CENTER_X  285.0f
+#define ENEMY_GROUND_Y       118.0f
+#define OPPONENT_SCALE       1.0f
 
-// Posizione sulla pedana avversaria
-#define ENEMY_BASE_CENTER_X   285.0f  // Centro orizzontale della pedana d'erba
-#define ENEMY_GROUND_Y        118.0f  // Punto d'appoggio dei piedi sulla pedana
-
-// ============================================================================
-// SCALA E VELOCITA' DELL'UCCELLINO: MODIFICA QUESTI VALORI PER PERSONALIZZARE!
-// ============================================================================
-// A scala 1.0f il frame f0 misura ~48 x 68 px a schermo (pixel-art 1:1 nativa)
-#define OPPONENT_SCALE        1.0f
-
-// Animazione 32 sprite: ms per singolo frame (75ms = ~13 FPS, ciclo completo 2.40s)
-#define OPPONENT_ANIM_FRAMES  32
-#define OPPONENT_FRAME_MS     75ULL
+// Giocatore (back, sulla pedana in basso a sinistra, a filo inferiore)
+#define PLAYER_ANCHOR_X      60.5f
+#define PLAYER_ANCHOR_Y      120.0f
+#define PLAYER_BASE_CENTER_X 110.0f
+#define PLAYER_GROUND_Y      239.0f
+#define PLAYER_SCALE         1.4f
 
 static bool        s_ready = false;
 static C3D_Tex     s_texBg;
 static C3D_Tex     s_texBaseEnemy;
 static C3D_Tex     s_texBasePlayer;
-static C3D_Tex     s_texOpponents;
-static C3D_Tex     s_texPlayer;
+static C3D_Tex     s_texOpponentFront;
+static C3D_Tex     s_texPlayerBack;
 static TileVertex* s_vbo = NULL;
 static u64         s_animStartMs = 0;
 static u64         s_lastDrawMs  = 0;
@@ -56,96 +54,50 @@ static void setQuad(TileVertex* v, float x0, float y0, float x1, float y1, float
     v[5] = (TileVertex){ x0, y0, 0.5f, u0, v1, 0.0f, 0.0f };
 }
 
-static void updateOpponentQuad(TileVertex* v, int frame_idx) {
-    int idx = frame_idx % OPPONENT_ANIM_FRAMES;
-    if (idx < 0) idx += OPPONENT_ANIM_FRAMES;
+static void updateBirdSheetQuad(TileVertex* v, int frame_idx, float base_x, float ground_y, float anchor_x, float anchor_y, float scale) {
+    int idx = frame_idx % BIRD_ANIM_FRAMES;
+    if (idx < 0) idx += BIRD_ANIM_FRAMES;
     int col = idx % 4;
     int row = idx / 4;
 
-    float frame_w  = OPPONENT_FRAME_W  * OPPONENT_SCALE;
-    float frame_h  = OPPONENT_FRAME_H  * OPPONENT_SCALE;
-    float anchor_x = OPPONENT_ANCHOR_X * OPPONENT_SCALE;
-    float anchor_y = OPPONENT_ANCHOR_Y * OPPONENT_SCALE;
+    float frame_w = BIRD_FRAME_W * scale;
+    float frame_h = BIRD_FRAME_H * scale;
 
-    float opp_x0 = ENEMY_BASE_CENTER_X - anchor_x;
-    float opp_x1 = opp_x0 + frame_w;
-    float opp_y0 = ENEMY_GROUND_Y - anchor_y;
-    float opp_y1 = opp_y0 + frame_h;
+    float x0 = base_x - (anchor_x * scale);
+    float x1 = x0 + frame_w;
+    float y0 = ground_y - (anchor_y * scale);
+    float y1 = y0 + frame_h;
 
-    float px0 = col * OPPONENT_CELL_STRIDE;
-    float py0 = row * OPPONENT_CELL_STRIDE;
-    float px1 = px0 + OPPONENT_FRAME_W;
-    float py1 = py0 + OPPONENT_FRAME_H;
+    float px0 = col * BIRD_CELL_STRIDE;
+    float py0 = row * BIRD_CELL_STRIDE;
+    float px1 = px0 + BIRD_FRAME_W;
+    float py1 = py0 + BIRD_FRAME_H;
 
-    float opp_u0 = px0 / OPPONENT_TEX_W;
-    float opp_u1 = px1 / OPPONENT_TEX_W;
-    float opp_v1 = 1.0f - (py0 / OPPONENT_TEX_H);
-    float opp_v0 = 1.0f - (py1 / OPPONENT_TEX_H);
+    float u0 = px0 / BIRD_TEX_W;
+    float u1 = px1 / BIRD_TEX_W;
+    float v1 = 1.0f - (py0 / BIRD_TEX_H);
+    float v0 = 1.0f - (py1 / BIRD_TEX_H);
 
-    setQuad(v, opp_x0, opp_y0, opp_x1, opp_y1, opp_u0, opp_v0, opp_u1, opp_v1);
+    setQuad(v, x0, y0, x1, y1, u0, v0, u1, v1);
 }
 
-static void getAtlasUV(int slot, float* u0, float* v0, float* u1, float* v1) {
-    // Atlas 256x256 con 4 quadranti da 128x128:
-    // slot 0: top-left     (u: 0.0..0.5, v: 0.5..1.0)
-    // slot 1: top-right    (u: 0.5..1.0, v: 0.5..1.0)
-    // slot 2: bottom-left  (u: 0.0..0.5, v: 0.0..0.5)
-    // slot 3: bottom-right (u: 0.5..1.0, v: 0.0..0.5)
-    switch (slot) {
-        case 1:
-            *u0 = 0.5f; *u1 = 1.0f;
-            *v0 = 0.5f; *v1 = 1.0f;
-            break;
-        case 2:
-            *u0 = 0.0f; *u1 = 0.5f;
-            *v0 = 0.0f; *v1 = 0.5f;
-            break;
-        case 3:
-            *u0 = 0.5f; *u1 = 1.0f;
-            *v0 = 0.0f; *v1 = 0.5f;
-            break;
-        case 0:
-        default:
-            *u0 = 0.0f; *u1 = 0.5f;
-            *v0 = 0.5f; *v1 = 1.0f;
-            break;
-    }
+static void loadTex(const void* data, u32 size, C3D_Tex* outTex, GPU_TEXTURE_FILTER_PARAM filter) {
+    Tex3DS_Texture t3x = Tex3DS_TextureImport(data, size, outTex, NULL, false);
+    if (t3x) Tex3DS_TextureFree(t3x);
+    C3D_TexSetFilter(outTex, filter, filter);
+    C3D_TexSetWrap(outTex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
 }
 
 void battleSceneInit(void) {
     if (s_ready) return;
 
-    // 1. Carica texture di sfondo
-    Tex3DS_Texture t_bg = Tex3DS_TextureImport(battle_bg_t3x, battle_bg_t3x_size, &s_texBg, NULL, false);
-    if (t_bg) Tex3DS_TextureFree(t_bg);
-    C3D_TexSetFilter(&s_texBg, GPU_LINEAR, GPU_LINEAR);
-    C3D_TexSetWrap(&s_texBg, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
+    loadTex(battle_bg_t3x, battle_bg_t3x_size, &s_texBg, GPU_LINEAR);
+    loadTex(battle_base_enemy_t3x, battle_base_enemy_t3x_size, &s_texBaseEnemy, GPU_NEAREST);
+    loadTex(battle_base_player_t3x, battle_base_player_t3x_size, &s_texBasePlayer, GPU_NEAREST);
+    loadTex(uccello_front_t3x, uccello_front_t3x_size, &s_texOpponentFront, GPU_NEAREST);
+    loadTex(uccello_back_t3x, uccello_back_t3x_size, &s_texPlayerBack, GPU_NEAREST);
 
-    // 2. Carica cerchio base avversario
-    Tex3DS_Texture t_be = Tex3DS_TextureImport(battle_base_enemy_t3x, battle_base_enemy_t3x_size, &s_texBaseEnemy, NULL, false);
-    if (t_be) Tex3DS_TextureFree(t_be);
-    C3D_TexSetFilter(&s_texBaseEnemy, GPU_NEAREST, GPU_NEAREST);
-    C3D_TexSetWrap(&s_texBaseEnemy, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
-
-    // 3. Carica cerchio base giocatore
-    Tex3DS_Texture t_bp = Tex3DS_TextureImport(battle_base_player_t3x, battle_base_player_t3x_size, &s_texBasePlayer, NULL, false);
-    if (t_bp) Tex3DS_TextureFree(t_bp);
-    C3D_TexSetFilter(&s_texBasePlayer, GPU_NEAREST, GPU_NEAREST);
-    C3D_TexSetWrap(&s_texBasePlayer, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
-
-    // 4. Carica texture Pokemon avversario
-    Tex3DS_Texture t_opp = Tex3DS_TextureImport(battle_opponents_t3x, battle_opponents_t3x_size, &s_texOpponents, NULL, false);
-    if (t_opp) Tex3DS_TextureFree(t_opp);
-    C3D_TexSetFilter(&s_texOpponents, GPU_NEAREST, GPU_NEAREST);
-    C3D_TexSetWrap(&s_texOpponents, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
-
-    // 5. Carica atlas Pokemon giocatore
-    Tex3DS_Texture t_ply = Tex3DS_TextureImport(battle_player_t3x, battle_player_t3x_size, &s_texPlayer, NULL, false);
-    if (t_ply) Tex3DS_TextureFree(t_ply);
-    C3D_TexSetFilter(&s_texPlayer, GPU_NEAREST, GPU_NEAREST);
-    C3D_TexSetWrap(&s_texPlayer, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
-
-    // 6. Alloca VBO lineare per i 5 quad (30 vertici)
+    // Alloca VBO lineare per i 5 quad (30 vertici)
     s_vbo = (TileVertex*)linearAlloc(30 * sizeof(TileVertex));
     if (s_vbo) {
         // Quad 0 (vertici 0..5): Sfondo schermo intero 400x240
@@ -154,16 +106,14 @@ void battleSceneInit(void) {
         // Quad 1 (vertici 6..11): Cerchio base nemico (in alto a destra)
         setQuad(&s_vbo[6], 200.0f, 93.0f, 370.0f, 137.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 
-        // Quad 2 (vertici 12..17): Pokemon selvatico (frame 0 iniziale)
-        updateOpponentQuad(&s_vbo[12], 0);
+        // Quad 2 (vertici 12..17): Pokemon selvatico sempre uccello_front
+        updateBirdSheetQuad(&s_vbo[12], 0, ENEMY_BASE_CENTER_X, ENEMY_GROUND_Y, OPPONENT_ANCHOR_X, OPPONENT_ANCHOR_Y, OPPONENT_SCALE);
 
-        // Quad 3 (vertici 18..23): Cerchio base giocatore (in basso a sinistra, a filo con il bordo inferiore dello schermo)
+        // Quad 3 (vertici 18..23): Cerchio base giocatore (in basso a sinistra, a filo inferiore)
         setQuad(&s_vbo[18], -30.0f, 196.0f, 250.0f, 254.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 
-        // Quad 4 (vertici 24..29): Pokemon del giocatore (posizionato a filo inferiore sulla base)
-        float pu0, pv0, pu1, pv1;
-        getAtlasUV(0, &pu0, &pv0, &pu1, &pv1);
-        setQuad(&s_vbo[24], 55.0f, 135.0f, 165.0f, 245.0f, pu0, pv0, pu1, pv1);
+        // Quad 4 (vertici 24..29): Pokemon giocatore sempre uccello_back
+        updateBirdSheetQuad(&s_vbo[24], 0, PLAYER_BASE_CENTER_X, PLAYER_GROUND_Y, PLAYER_ANCHOR_X, PLAYER_ANCHOR_Y, PLAYER_SCALE);
 
         GSPGPU_FlushDataCache(s_vbo, 30 * sizeof(TileVertex));
     }
@@ -175,16 +125,18 @@ void battleSceneInit(void) {
 
 void battleSceneDraw(int uLoc_projection, int uLoc_view, int wild_mon_index, int player_mon_index) {
     (void)wild_mon_index;
+    (void)player_mon_index;
     if (!s_ready || !s_vbo) return;
 
-    // 0. Calcola il frame corrente dell'animazione a 32 sprite in loop continuo
+    // 0. Calcola i frame correnti delle animazioni a 32 sprite in loop continuo
     // Se si entra in un nuovo incontro (> 250ms dall'ultimo frame), riparte pulito dal frame 0
     u64 now = osGetTime();
     if (s_animStartMs == 0 || (now - s_lastDrawMs) > 250ULL) {
         s_animStartMs = now;
     }
     s_lastDrawMs = now;
-    int opp_frame = (int)(((now - s_animStartMs) / OPPONENT_FRAME_MS) % OPPONENT_ANIM_FRAMES);
+    int front_frame = (int)(((now - s_animStartMs) / BIRD_FRAME_MS) % BIRD_ANIM_FRAMES);
+    int back_frame  = (front_frame + (BIRD_ANIM_FRAMES / 2)) % BIRD_ANIM_FRAMES;
 
     // 1. Configura proiezione ortografica 2D (400x240) e matrice vista identità
     C3D_Mtx orthoProj;
@@ -203,12 +155,9 @@ void battleSceneDraw(int uLoc_projection, int uLoc_view, int wild_mon_index, int
     C3D_AlphaBlend(GPU_BLEND_ADD, GPU_BLEND_ADD, GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA, GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA);
     C3D_AlphaTest(true, GPU_GREATER, 0);
 
-    // 4. Aggiorna UV e quad in base al frame corrente e al Pokemon del giocatore
-    updateOpponentQuad(&s_vbo[12], opp_frame);
-
-    float pu0, pv0, pu1, pv1;
-    getAtlasUV(player_mon_index, &pu0, &pv0, &pu1, &pv1);
-    setQuad(&s_vbo[24], 55.0f, 135.0f, 165.0f, 245.0f, pu0, pv0, pu1, pv1);
+    // 4. Aggiorna UV e quad per entrambi gli spritesheet
+    updateBirdSheetQuad(&s_vbo[12], front_frame, ENEMY_BASE_CENTER_X, ENEMY_GROUND_Y, OPPONENT_ANCHOR_X, OPPONENT_ANCHOR_Y, OPPONENT_SCALE);
+    updateBirdSheetQuad(&s_vbo[24], back_frame, PLAYER_BASE_CENTER_X, PLAYER_GROUND_Y, PLAYER_ANCHOR_X, PLAYER_ANCHOR_Y, PLAYER_SCALE);
 
     GSPGPU_FlushDataCache(&s_vbo[12], 18 * sizeof(TileVertex));
 
@@ -224,16 +173,16 @@ void battleSceneDraw(int uLoc_projection, int uLoc_view, int wild_mon_index, int
     C3D_TexBind(0, &s_texBaseEnemy);
     C3D_DrawArrays(GPU_TRIANGLES, 6, 6);
 
-    // Disegna livello 2: Sprite Pokemon selvatico
-    C3D_TexBind(0, &s_texOpponents);
+    // Disegna livello 2: Uccello avversario (uccello_front)
+    C3D_TexBind(0, &s_texOpponentFront);
     C3D_DrawArrays(GPU_TRIANGLES, 12, 6);
 
     // Disegna livello 3: Cerchio base giocatore
     C3D_TexBind(0, &s_texBasePlayer);
     C3D_DrawArrays(GPU_TRIANGLES, 18, 6);
 
-    // Disegna livello 4: Sprite Pokemon giocatore (spalle)
-    C3D_TexBind(0, &s_texPlayer);
+    // Disegna livello 4: Uccello giocatore (uccello_back)
+    C3D_TexBind(0, &s_texPlayerBack);
     C3D_DrawArrays(GPU_TRIANGLES, 24, 6);
 
     // Ripristina depth test per il rendering successivo del mondo 3D
@@ -245,8 +194,8 @@ void battleSceneExit(void) {
         C3D_TexDelete(&s_texBg);
         C3D_TexDelete(&s_texBaseEnemy);
         C3D_TexDelete(&s_texBasePlayer);
-        C3D_TexDelete(&s_texOpponents);
-        C3D_TexDelete(&s_texPlayer);
+        C3D_TexDelete(&s_texOpponentFront);
+        C3D_TexDelete(&s_texPlayerBack);
         s_ready = false;
     }
     if (s_vbo) {
