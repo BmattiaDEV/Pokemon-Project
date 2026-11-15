@@ -6,19 +6,18 @@
 #include "battle_player_t3x.h"
 
 // ============================================================================
-// CONFIGURAZIONE SPRITESHEET E ANIMAZIONE POKEMON NEMICO (16 FRAME IN LOOP)
+// CONFIGURAZIONE SPRITESHEET E ANIMAZIONE POKEMON NEMICO (32 FRAME IN LOOP)
 // ============================================================================
-// Texture data/battle_opponents.png: 1024x1024, griglia 4x4 di celle da 256x256
-// Ogni frame dell'animazione occupa un riquadro 160x160 nell'angolo in alto a sinistra della cella
-#define OPPONENT_TEX_W        1024.0f
+// Texture data/battle_opponents.png: 512x1024, griglia 4x8 di celle da 128x128
+#define OPPONENT_TEX_W        512.0f
 #define OPPONENT_TEX_H        1024.0f
-#define OPPONENT_CELL_STRIDE  256.0f
-#define OPPONENT_FRAME_W      160.0f
-#define OPPONENT_FRAME_H      160.0f
+#define OPPONENT_CELL_STRIDE  128.0f
+#define OPPONENT_FRAME_W      128.0f
+#define OPPONENT_FRAME_H      128.0f
 
-// Punto di ancoraggio del corpo e delle zampe dentro il riquadro 160x160
-#define OPPONENT_ANCHOR_X     81.5f   // 34 + (95 / 2): centro del corpo
-#define OPPONENT_ANCHOR_Y     151.0f  // 16 + 135: pianta delle zampe
+// Punto di ancoraggio del corpo e delle zampe dentro il riquadro 128x128
+#define OPPONENT_ANCHOR_X     68.0f   // Centro bilanciato corpo/zampe
+#define OPPONENT_ANCHOR_Y     120.0f  // Pianta delle zampe (preserva il salto dei frame)
 
 // Posizione sulla pedana avversaria
 #define ENEMY_BASE_CENTER_X   285.0f  // Centro orizzontale della pedana d'erba
@@ -27,16 +26,12 @@
 // ============================================================================
 // SCALA E VELOCITA' DELL'UCCELLINO: MODIFICA QUESTI VALORI PER PERSONALIZZARE!
 // ============================================================================
-// OPPONENT_SCALE:
-//   0.45f = molto piccolo (~43 x 61 px)
-//   0.52f = piccolo / cucciolo (~49 x 70 px)  <-- ATTUALE (stile Starly in D/P)
-//   0.60f = medio (~57 x 81 px)
-//   0.70f = grande (~67 x 95 px)
-#define OPPONENT_SCALE        0.52f
+// A scala 1.0f il frame f0 misura ~48 x 68 px a schermo (pixel-art 1:1 nativa)
+#define OPPONENT_SCALE        1.0f
 
-// Animazione 16 sprite: ms per singolo frame (85ms = ~12 FPS, ciclo completo ~1.36s)
-#define OPPONENT_ANIM_FRAMES  16
-#define OPPONENT_FRAME_MS     85ULL
+// Animazione 32 sprite: ms per singolo frame (75ms = ~13 FPS, ciclo completo 2.40s)
+#define OPPONENT_ANIM_FRAMES  32
+#define OPPONENT_FRAME_MS     75ULL
 
 static bool        s_ready = false;
 static C3D_Tex     s_texBg;
@@ -182,7 +177,7 @@ void battleSceneDraw(int uLoc_projection, int uLoc_view, int wild_mon_index, int
     (void)wild_mon_index;
     if (!s_ready || !s_vbo) return;
 
-    // 0. Calcola il frame corrente dell'animazione a 16 sprite in loop continuo
+    // 0. Calcola il frame corrente dell'animazione a 32 sprite in loop continuo
     // Se si entra in un nuovo incontro (> 250ms dall'ultimo frame), riparte pulito dal frame 0
     u64 now = osGetTime();
     if (s_animStartMs == 0 || (now - s_lastDrawMs) > 250ULL) {
