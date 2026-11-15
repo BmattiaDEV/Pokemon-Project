@@ -587,7 +587,10 @@ void dsMapUpdate(u32 kHeld, u32 kDown) {
     playerUpdate(kDown, kHeld);
 }
 
-static void buildFlowerOverlayQuad(TileVertex* fv, int gx, int gy) {
+// Costruisce un quad 3D leggermente rialzato e inclinato verso sud per gli overlay
+// (fiori / erba alta): con GPU_GEQUAL copre solo i piedi del giocatore e resta
+// naturalmente dietro a busto, testa, alberi e ostacoli anche durante il movimento.
+static void buildTileOverlayQuad(TileVertex* fv, int gx, int gy, float y_north_off, float y_south_off) {
     float ox, oy;
     gridToObjCenter((float)gx, (float)gy, &ox, &oy);
     float twx = (ox - dsCenterX) * dsScale;
@@ -600,34 +603,8 @@ static void buildFlowerOverlayQuad(TileVertex* fv, int gx, int gy) {
     float z_north = twz - half_s;
     float z_south = twz + half_s;
 
-    fv[0] = (TileVertex){x_left,  twy, z_south, 0.0f, 0.0f, 0.0f, 0.0f};
-    fv[1] = (TileVertex){x_right, twy, z_south, 1.0f, 0.0f, 0.0f, 0.0f};
-    fv[2] = (TileVertex){x_right, twy, z_north, 1.0f, 1.0f, 0.0f, 0.0f};
-
-    fv[3] = (TileVertex){x_left,  twy, z_south, 0.0f, 0.0f, 0.0f, 0.0f};
-    fv[4] = (TileVertex){x_right, twy, z_north, 1.0f, 1.0f, 0.0f, 0.0f};
-    fv[5] = (TileVertex){x_left,  twy, z_north, 0.0f, 1.0f, 0.0f, 0.0f};
-}
-
-static void buildGrassOverlayQuad(TileVertex* fv, int gx, int gy) {
-    float ox, oy;
-    gridToObjCenter((float)gx, (float)gy, &ox, &oy);
-    float twx = (ox - dsCenterX) * dsScale;
-    float twy = (dsGridHeight[gy][gx] - dsMinZ) * dsScale;
-    float twz = -(oy - dsCenterY) * dsScale;
-
-    float half_s = 0.5f * dsScale;
-    float x_left  = twx - half_s;
-    float x_right = twx + half_s;
-    float z_north = twz - half_s;
-    float z_south = twz + half_s;
-
-    // Leggera inclinazione 3D verso il sud:
-    // - Si eleva a sufficienza da coprire le scarpe del giocatore (GPU_GEQUAL passa sopra i piedi)
-    // - Rimane ben al di sotto del corpo/torso del giocatore e della chioma degli alberi
-    //   (GPU_GEQUAL fallisce, quindi alberi, rocce e corpo del giocatore coprono naturalmente l'erba!)
-    float y_south = twy + 4.5f;
-    float y_north = twy + 1.2f;
+    float y_north = twy + y_north_off;
+    float y_south = twy + y_south_off;
 
     fv[0] = (TileVertex){x_left,  y_south, z_south, 0.0f, 0.0f, 0.0f, 0.0f};
     fv[1] = (TileVertex){x_right, y_south, z_south, 1.0f, 0.0f, 0.0f, 0.0f};
@@ -716,61 +693,10 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
         C3D_DrawArrays(GPU_TRIANGLES, (int)dsPlayerFirst, 6);
     }
 
-    // 3. Disegna l'overlay dei fiori in primo piano come prima (solo metà anteriore del fiore)
-    //    quando il giocatore si trova sopra una cella con fiori
-    if (dsFlowerTexReady && dsVbo) {
-        float pgx, pgy;
-        playerGetGridPos(&pgx, &pgy);
-
-        int min_gx = (int)floorf(pgx - 0.6f);
-        int max_gx = (int)floorf(pgx + 0.6f);
-        int min_gy = (int)floorf(pgy - 0.6f);
-        int max_gy = (int)floorf(pgy + 0.6f);
-
-        u32 flowerQuads = 0;
-        for (int gy = min_gy; gy <= max_gy; ++gy) {
-            for (int gx = min_gx; gx <= max_gx; ++gx) {
-                if (gx < 0 || gx >= DS_GRID_SIZE || gy < 0 || gy >= DS_GRID_SIZE) continue;
-                if (!dsGridHasFlowers[gy][gx]) continue;
-                if (flowerQuads >= 4) break;
-
-                // Controllo Z originale dei fiori:
-                // Se il personaggio ha meno Z (è davanti al fiore, pgy > gy + 0.35f),
-                // tutto il fiore deve rimanere DIETRO al personaggio (nessun overlay in primo piano).
-                // Se hanno la stessa Z (pgy circa uguale a gy, entro [-0.45, +0.35]),
-                // mostra la metà anteriore del fiore davanti al personaggio.
-                if (pgy > (float)gy + 0.35f) {
-                    continue; // Personaggio davanti al fiore: tutto il fiore resta dietro
-                }
-                if (pgy < (float)gy - 0.45f) {
-                    continue; // Personaggio dietro al fiore
-                }
-                if (fabsf(pgx - (float)gx) > 0.85f) {
-                    continue; // Non sovrapposto orizzontalmente
-                }
-
-                buildFlowerOverlayQuad(&dsVbo[dsFlowerFirst + flowerQuads * 6], gx, gy);
-                flowerQuads++;
-            }
-        }
-
-        if (flowerQuads > 0) {
-            GSPGPU_FlushDataCache(&dsVbo[dsFlowerFirst], flowerQuads * 6 * sizeof(TileVertex));
-
-            C3D_DepthTest(true, GPU_ALWAYS, GPU_WRITE_ALL);
-            if (dsFlowerAnimReady) {
-                C3D_TexBind(0, &dsFlowerOverlayTex[flower_frame]);
-            } else {
-                C3D_TexBind(0, &dsFlowerTex);
-            }
-            C3D_DrawArrays(GPU_TRIANGLES, (int)dsFlowerFirst, (int)(flowerQuads * 6));
-            C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
-        }
-    }
-
-    // 4. Disegna l'overlay dell'erba alta in primo piano (solo nectgr_lm42)
-    //    con inclinazione 3D e Z-buffer per coprire le scarpe ma restare dietro ad alberi e ostacoli
-    if (dsGrassTexReady && dsVbo) {
+    // 3 & 4. Overlay dei fiori (rhana) e dell'erba alta (nectgr_lm42) in primo piano sui piedi:
+    //        usiamo playerShouldOverlayTile() e il vero Z-buffer (GPU_GEQUAL) per evitare che
+    //        il fiore compaia davanti alla testa mentre il personaggio sale verso nord.
+    if (dsVbo && (dsFlowerTexReady || dsGrassTexReady)) {
         float pgx, pgy;
         playerGetGridPos(&pgx, &pgy);
 
@@ -783,16 +709,37 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
         if (min_gy < 0) min_gy = 0;
         if (max_gy >= DS_GRID_SIZE) max_gy = DS_GRID_SIZE - 1;
 
-        u32 grassQuads = 0;
+        u32 flowerQuads = 0;
+        u32 grassQuads  = 0;
+
         for (int gy = min_gy; gy <= max_gy; ++gy) {
             for (int gx = min_gx; gx <= max_gx; ++gx) {
                 if (!playerShouldOverlayTile(gx, gy)) continue;
-                if (!dsGridHasGrass[gy][gx]) continue;
-                if (grassQuads >= 4) break;
 
-                buildGrassOverlayQuad(&dsVbo[dsGrassFirst + grassQuads * 6], gx, gy);
-                grassQuads++;
+                if (dsFlowerTexReady && dsGridHasFlowers[gy][gx] && flowerQuads < 4) {
+                    // Stessa quota twy del tile terreno (nessuno slittamento visivo dei petali):
+                    // playerShouldOverlayTile() garantisce che compaia solo quando i piedi sono sul fiore.
+                    buildTileOverlayQuad(&dsVbo[dsFlowerFirst + flowerQuads * 6], gx, gy, 0.0f, 0.0f);
+                    flowerQuads++;
+                }
+                if (dsGrassTexReady && dsGridHasGrass[gy][gx] && grassQuads < 4) {
+                    buildTileOverlayQuad(&dsVbo[dsGrassFirst + grassQuads * 6], gx, gy, 1.2f, 4.5f);
+                    grassQuads++;
+                }
             }
+        }
+
+        if (flowerQuads > 0) {
+            GSPGPU_FlushDataCache(&dsVbo[dsFlowerFirst], flowerQuads * 6 * sizeof(TileVertex));
+
+            C3D_DepthTest(true, GPU_ALWAYS, GPU_WRITE_COLOR);
+            if (dsFlowerAnimReady) {
+                C3D_TexBind(0, &dsFlowerOverlayTex[flower_frame]);
+            } else {
+                C3D_TexBind(0, &dsFlowerTex);
+            }
+            C3D_DrawArrays(GPU_TRIANGLES, (int)dsFlowerFirst, (int)(flowerQuads * 6));
+            C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
         }
 
         if (grassQuads > 0) {
