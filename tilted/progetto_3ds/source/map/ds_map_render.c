@@ -90,11 +90,11 @@ static void drawFootOverlaysPass(int flower_frame) {
             bool hasGrass  = g_dsMap.grassTexReady  && g_dsMap.gridHasGrass[gy][gx];
             if (!hasFlower && !hasGrass) continue;
 
-            bool overPlayer = playerShouldOverlayTile(gx, gy);
-            bool overNpc    = npcShouldOverlayTile(gx, gy) && !playerIsAt(gx, gy + 1) && !npcIsAt(gx, gy + 1);
-            if (!overPlayer && !overNpc) continue;
+            bool overChar      = playerShouldOverlayTile(gx, gy) || npcShouldOverlayTile(gx, gy);
+            bool southOccupied = playerIsAt(gx, gy + 1) || npcIsAt(gx, gy + 1);
+            if (!overChar) continue;
 
-            if (hasFlower && flowerQuads < 4) {
+            if (hasFlower && !southOccupied && flowerQuads < 4) {
                 buildTileOverlayQuad(&g_dsMap.vbo[g_dsMap.flowerFirst + flowerQuads * 6], gx, gy, 0.0f, 0.0f);
                 flowerQuads++;
             }
