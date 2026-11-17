@@ -54,8 +54,15 @@ static int getNpcAnimStep(const Npc* npc) {
     return 0;
 }
 
-static void buildNpcVbo(void) {
+static void buildNpcVbo(float cam_x, float cam_y, float cam_z, float cam_dist) {
     if (!s_npcVbo || s_npcCount <= 0) return;
+
+    float rad   = CAM_ANGLE_DEG * (M_PI / 180.0f);
+    float sin_a = sinf(rad);
+    float cos_a = cosf(rad);
+
+    float z_bot_loc = 0.5f * sin_a + 6.0f * cos_a;
+    float z_top_loc = (0.5f + PLAYER_RISE_Y) * sin_a + (6.0f - PLAYER_SLANT_Z) * cos_a;
 
     for (int i = 0; i < s_npcCount; ++i) {
         const Npc* npc = &s_npcs[i];
@@ -76,7 +83,32 @@ static void buildNpcVbo(void) {
         float v_top    = 1.0f - (((float)row * PLAYER_SPRITE_H) / NPC_TEX_H);
         float v_bottom = 1.0f - (((float)(row + 1) * PLAYER_SPRITE_H) / NPC_TEX_H);
 
-        playerBuildBillboardQuad(&s_npcVbo[i * 6], wx, wy, wz, u_left, v_bottom, u_right, v_top);
+        TileVertex* v = &s_npcVbo[i * 6];
+        playerBuildBillboardQuad(v, wx, wy, wz, u_left, v_bottom, u_right, v_top);
+
+        // Compensa la deformazione prospettica laterale/verticale fuori centro (inOff.xy)
+        // così ogni NPC mantiene esattamente lo stesso angolo e proporzioni del personaggio del giocatore
+        // senza ruotare verso la telecamera e senza alterare lo Z-buffer 3D.
+        float dx = wx - cam_x;
+        float dy = wy - cam_y;
+        float dz = wz - cam_z;
+
+        float x_anc = dx;
+        float y_anc = dy * cos_a - dz * sin_a;
+        float z_anc = dy * sin_a + dz * cos_a;
+
+        float w_bot = cam_dist - (z_anc + z_bot_loc);
+        float w_top = cam_dist - (z_anc + z_top_loc);
+
+        if (w_bot > 1.0f) {
+            float shear_scale = (w_top - w_bot) / w_bot;
+            float ox_top = x_anc * shear_scale;
+            float oy_top = y_anc * shear_scale;
+
+            v[2].ox = ox_top; v[2].oy = oy_top;
+            v[4].ox = ox_top; v[4].oy = oy_top;
+            v[5].ox = ox_top; v[5].oy = oy_top;
+        }
     }
 
     GSPGPU_FlushDataCache(s_npcVbo, (u32)(s_npcCount * 6) * sizeof(TileVertex));
@@ -242,12 +274,10 @@ bool npcShouldOverlayTile(int gx, int gy) {
     return false;
 }
 
-void npcDrawAll(void) {
+void npcDrawAll(float cam_x, float cam_y, float cam_z, float cam_dist) {
     if (!s_npcTexReady || !s_npcVbo || s_npcCount <= 0) return;
 
-    if (s_vboDirty) {
-        buildNpcVbo();
-    }
+    buildNpcVbo(cam_x, cam_y, cam_z, cam_dist);
 
     C3D_BufInfo* buf = C3D_GetBufInfo();
     BufInfo_Init(buf);

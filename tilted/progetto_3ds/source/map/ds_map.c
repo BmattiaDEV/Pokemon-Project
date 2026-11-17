@@ -702,8 +702,8 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
         C3D_DrawArrays(GPU_TRIANGLES, (int)dsPlayerFirst, 6);
     }
 
-    // 2b. Disegna gli NPC statici con lo stesso Z-buffer 3D del giocatore
-    npcDrawAll();
+    // 2b. Disegna gli NPC con lo stesso Z-buffer 3D e angolo prospettico del giocatore
+    npcDrawAll(px, py, pz, dsDist);
 
     // 3 & 4. Overlay dei fiori (rhana) e dell'erba alta (nectgr_lm42) in primo piano sui piedi:
     //        usiamo playerShouldOverlayTile() e il vero Z-buffer (GPU_GEQUAL) per evitare che

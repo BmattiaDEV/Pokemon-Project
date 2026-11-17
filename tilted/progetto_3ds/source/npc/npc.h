@@ -53,5 +53,5 @@ Npc* npcGetAt(int gx, int gy);
 // Restituisce true se almeno un NPC richiede l'overlay di fiori/erba alta sopra i piedi sulla cella (gx, gy)
 bool npcShouldOverlayTile(int gx, int gy);
 
-// Disegna tutti gli NPC con lo Z-buffer 3D attivo
-void npcDrawAll(void);
+// Disegna tutti gli NPC con lo Z-buffer 3D attivo e la stessa inclinazione prospettica del giocatore
+void npcDrawAll(float cam_x, float cam_y, float cam_z, float cam_dist);
