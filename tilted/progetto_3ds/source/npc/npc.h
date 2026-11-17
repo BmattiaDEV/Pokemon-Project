@@ -23,6 +23,7 @@ typedef struct {
     float           pos_y;
     PlayerDirection dir;           // 0=DIR_DOWN, 1=DIR_UP, 2=DIR_LEFT, 3=DIR_RIGHT
     int             sprite_id;     // Riga in data/npcs.png (0..3)
+    int             text_id;       // Indice del dialogo in source/npc/npc_texts.c
     bool            moving;
     float           move_progress;
     int             step_parity;
@@ -36,10 +37,13 @@ void npcInit(void);
 void npcExit(void);
 
 // Aggiunge un NPC a runtime (wander_radius = 1 corrisponde a un'area 3x3 attorno a gx, gy)
-int npcAdd(int gx, int gy, PlayerDirection dir, int sprite_id, NpcMoveMode move_mode, int wander_radius);
+int npcAdd(int gx, int gy, PlayerDirection dir, int sprite_id, NpcMoveMode move_mode, int wander_radius, int text_id);
 
 // Aggiorna movimento autonomo, animazione dei passi e collisioni di tutti gli NPC
 void npcUpdateAll(void);
+
+// Se il giocatore ha di fronte un NPC fermo sulla sua cella, lo gira verso di lui e avvia il dialogo
+bool npcTryInteract(int player_gx, int player_gy, PlayerDirection player_dir);
 
 // Restituisce il numero attuale di NPC registrati
 int npcGetCount(void);

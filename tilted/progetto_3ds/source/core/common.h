@@ -57,3 +57,18 @@ static inline bool texLoadFromMem(
     C3D_TexSetWrap(outTex, wrap, wrap);
     return true;
 }
+
+// Helper condiviso per costruire un quad 2D in proiezione ortografica (400x240)
+static inline void gfxSetQuad2D(
+    TileVertex* v,
+    float x0, float y0, float x1, float y1,
+    float u0, float v0, float u1, float v1)
+{
+    v[0] = (TileVertex){ x0, y1, 0.5f, u0, v0, 0.0f, 0.0f };
+    v[1] = (TileVertex){ x1, y1, 0.5f, u1, v0, 0.0f, 0.0f };
+    v[2] = (TileVertex){ x1, y0, 0.5f, u1, v1, 0.0f, 0.0f };
+
+    v[3] = (TileVertex){ x0, y1, 0.5f, u0, v0, 0.0f, 0.0f };
+    v[4] = (TileVertex){ x1, y0, 0.5f, u1, v1, 0.0f, 0.0f };
+    v[5] = (TileVertex){ x0, y0, 0.5f, u0, v1, 0.0f, 0.0f };
+}

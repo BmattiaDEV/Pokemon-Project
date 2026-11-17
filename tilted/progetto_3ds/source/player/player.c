@@ -152,6 +152,19 @@ void playerGetGridPos(float* out_x, float* out_y) {
     if (out_y) *out_y = s_player.pos_y;
 }
 
+void playerGetTilePos(int* out_gx, int* out_gy) {
+    if (out_gx) *out_gx = s_player.grid_x;
+    if (out_gy) *out_gy = s_player.grid_y;
+}
+
+PlayerDirection playerGetDirection(void) {
+    return s_player.dir;
+}
+
+bool playerIsMoving(void) {
+    return s_player.moving;
+}
+
 void playerGetWorldPos(float* out_x, float* out_y, float* out_z) {
     dsMapGetWorldPos(s_player.pos_x, s_player.pos_y, out_x, out_y, out_z);
 }

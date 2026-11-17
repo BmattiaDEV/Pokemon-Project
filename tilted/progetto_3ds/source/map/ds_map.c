@@ -1,6 +1,7 @@
 #include "ds_map_internal.h"
 #include "player.h"
 #include "npc.h"
+#include "dialogue.h"
 #include "player_t3x.h"
 #include "flower_overlay_t3x.h"
 #include "grass_overlay_t3x.h"
@@ -100,7 +101,18 @@ void dsMapUpdate(u32 kHeld, u32 kDown) {
     // Avanza timer animazioni mappa (acqua e fiori)
     dsMapAnimUpdate();
 
-    // Aggiorna movimento del giocatore e degli NPC
-    playerUpdate(kDown, kHeld);
+    if (dialogueIsActive()) {
+        dialogueUpdate(kDown);
+    } else {
+        if ((kDown & KEY_A) && !playerIsMoving()) {
+            int pgx, pgy;
+            playerGetTilePos(&pgx, &pgy);
+            npcTryInteract(pgx, pgy, playerGetDirection());
+        }
+        if (!dialogueIsActive()) {
+            playerUpdate(kDown, kHeld);
+        }
+    }
+
     npcUpdateAll();
 }

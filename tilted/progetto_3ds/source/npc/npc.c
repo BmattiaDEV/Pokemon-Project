@@ -1,5 +1,6 @@
 #include "npc.h"
 #include "ds_map.h"
+#include "dialogue.h"
 #include "npcs_t3x.h"
 
 // Atlas data/npcs.png: 512x128, griglia 16x4 di sprite 32x32 (usate colonne 0..11)
@@ -21,12 +22,13 @@ typedef struct {
     int             sprite_id;
     NpcMoveMode     move_mode;
     int             wander_radius; // 1 = max 3x3 centrato sul punto iniziale
+    int             text_id;       // Indice del dialogo in npc_texts.c
 } NpcSpawnDef;
 
 // Tabella iniziale degli NPC sulla mappa (wander_radius = 1 limita il movimento a un 3x3 attorno allo spawn)
 static const NpcSpawnDef s_initialNpcs[] = {
-    { 16, 14, DIR_RIGHT, 0, NPC_MOVE_WANDER, 1 },
-    { 20, 15, DIR_DOWN,  1, NPC_MOVE_WANDER, 1 },
+    { 16, 14, DIR_RIGHT, 0, NPC_MOVE_WANDER, 1, 0 },
+    { 20, 15, DIR_DOWN,  1, NPC_MOVE_WANDER, 1, 1 },
 };
 
 static Npc         s_npcs[MAX_NPCS];
@@ -129,7 +131,8 @@ void npcInit(void) {
             s_initialNpcs[i].dir,
             s_initialNpcs[i].sprite_id,
             s_initialNpcs[i].move_mode,
-            s_initialNpcs[i].wander_radius
+            s_initialNpcs[i].wander_radius,
+            s_initialNpcs[i].text_id
         );
     }
 }
@@ -146,7 +149,7 @@ void npcExit(void) {
     s_npcCount = 0;
 }
 
-int npcAdd(int gx, int gy, PlayerDirection dir, int sprite_id, NpcMoveMode move_mode, int wander_radius) {
+int npcAdd(int gx, int gy, PlayerDirection dir, int sprite_id, NpcMoveMode move_mode, int wander_radius, int text_id) {
     if (s_npcCount >= MAX_NPCS) return -1;
     if (wander_radius < 0) wander_radius = 0;
 
@@ -164,6 +167,7 @@ int npcAdd(int gx, int gy, PlayerDirection dir, int sprite_id, NpcMoveMode move_
         .pos_y         = (float)gy,
         .dir           = dir,
         .sprite_id     = sprite_id,
+        .text_id       = text_id,
         .moving        = false,
         .move_progress = 0.0f,
         .step_parity   = 0,
@@ -175,6 +179,7 @@ int npcAdd(int gx, int gy, PlayerDirection dir, int sprite_id, NpcMoveMode move_
 void npcUpdateAll(void) {
     static const int s_dx[4] = { 0,  0, -1, 1 };
     static const int s_dy[4] = { 1, -1,  0, 0 };
+    bool pausedForDialogue = dialogueIsActive();
 
     for (int i = 0; i < s_npcCount; ++i) {
         Npc* npc = &s_npcs[i];
@@ -197,7 +202,7 @@ void npcUpdateAll(void) {
             continue;
         }
 
-        if (npc->move_mode != NPC_MOVE_WANDER) {
+        if (pausedForDialogue || npc->move_mode != NPC_MOVE_WANDER) {
             continue;
         }
 
@@ -245,6 +250,39 @@ Npc* npcGetAt(int gx, int gy) {
 
 bool npcIsAt(int gx, int gy) {
     return npcGetAt(gx, gy) != NULL;
+}
+
+bool npcTryInteract(int player_gx, int player_gy, PlayerDirection player_dir) {
+    static const int s_dx[4] = { 0,  0, -1, 1 };
+    static const int s_dy[4] = { 1, -1,  0, 0 };
+    static const PlayerDirection s_oppositeDir[4] = { DIR_UP, DIR_DOWN, DIR_RIGHT, DIR_LEFT };
+
+    int d = (int)player_dir;
+    if (d < 0 || d > 3) return false;
+
+    int tx = player_gx + s_dx[d];
+    int ty = player_gy + s_dy[d];
+
+    Npc* target = npcGetAt(tx, ty);
+    if (!target) return false;
+
+    // Completa istantaneamente il passo se l'NPC stava entrando nella cella davanti al giocatore
+    if (target->moving) {
+        if (target->target_x != tx || target->target_y != ty) {
+            return false;
+        }
+        target->grid_x        = target->target_x;
+        target->grid_y        = target->target_y;
+        target->pos_x         = (float)target->grid_x;
+        target->pos_y         = (float)target->grid_y;
+        target->moving        = false;
+        target->move_progress = 0.0f;
+    }
+
+    target->dir         = s_oppositeDir[d];
+    target->wait_frames = 45;
+    dialogueStart(target->text_id);
+    return true;
 }
 
 bool npcShouldOverlayTile(int gx, int gy) {

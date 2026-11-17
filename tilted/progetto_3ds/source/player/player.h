@@ -27,6 +27,11 @@ void playerBuildQuad(TileVertex out_verts[6]);
 // Restituisce la posizione continua sulla griglia (pos_x, pos_y)
 void playerGetGridPos(float* out_x, float* out_y);
 
+// Restituisce la cella logica attuale (grid_x, grid_y), la direzione e lo stato di movimento
+void            playerGetTilePos(int* out_gx, int* out_gy);
+PlayerDirection playerGetDirection(void);
+bool            playerIsMoving(void);
+
 // Restituisce la posizione 3D nel mondo del giocatore (usata dalla telecamera per seguirlo)
 void playerGetWorldPos(float* out_x, float* out_y, float* out_z);
 

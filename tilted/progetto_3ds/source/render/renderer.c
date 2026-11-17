@@ -3,6 +3,7 @@
 #include "vshader_shbin.h"
 #include "ds_map.h"
 #include "battle_scene.h"
+#include "dialogue.h"
 
 static DVLB_s*           vshader_dvlb = NULL;
 static shaderProgram_s   program;
@@ -49,8 +50,9 @@ void rendererInit(void) {
     // 6. Carica la mappa importata da DS Map Studio (texture e vertici)
     dsMapInit();
 
-    // 7. Inizializza la scena di combattimento / incontro
+    // 7. Inizializza la scena di combattimento / incontro e il box dialoghi UI
     battleSceneInit();
+    dialogueInit();
 }
 
 void rendererDrawFrame(void) {
@@ -58,6 +60,7 @@ void rendererDrawFrame(void) {
     C3D_FrameDrawOn(topScreen);
     C3D_RenderTargetClear(topScreen, C3D_CLEAR_ALL, CLEAR_COLOR, 0);
     dsMapDrawFrame(&projection, uLoc_projection, uLoc_view);
+    dialogueDraw(uLoc_projection, uLoc_view);
     C3D_FrameEnd(0);
 }
 
@@ -77,6 +80,7 @@ void rendererDrawEncounterFrame(int wild_mon_index) {
 }
 
 void rendererExit(void) {
+    dialogueExit();
     battleSceneExit();
     dsMapExit();
     shaderProgramFree(&program);

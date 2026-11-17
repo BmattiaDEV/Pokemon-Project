@@ -41,19 +41,6 @@ static TileVertex* s_vbo = NULL;
 static u64         s_animStartMs = 0;
 static u64         s_lastDrawMs  = 0;
 
-static void setQuad(TileVertex* v, float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1) {
-    // Schermo 400x240 con proiezione ortografica (Mtx_OrthoTilt):
-    // y0 = top (min y), y1 = bottom (max y)
-    // Texture: v1 = top (1.0f), v0 = bottom (0.0f)
-    v[0] = (TileVertex){ x0, y1, 0.5f, u0, v0, 0.0f, 0.0f };
-    v[1] = (TileVertex){ x1, y1, 0.5f, u1, v0, 0.0f, 0.0f };
-    v[2] = (TileVertex){ x1, y0, 0.5f, u1, v1, 0.0f, 0.0f };
-
-    v[3] = (TileVertex){ x0, y1, 0.5f, u0, v0, 0.0f, 0.0f };
-    v[4] = (TileVertex){ x1, y0, 0.5f, u1, v1, 0.0f, 0.0f };
-    v[5] = (TileVertex){ x0, y0, 0.5f, u0, v1, 0.0f, 0.0f };
-}
-
 static void updateBirdSheetQuad(TileVertex* v, int frame_idx, float base_x, float ground_y, float anchor_x, float anchor_y, float scale) {
     int idx = frame_idx % BIRD_ANIM_FRAMES;
     if (idx < 0) idx += BIRD_ANIM_FRAMES;
@@ -78,7 +65,7 @@ static void updateBirdSheetQuad(TileVertex* v, int frame_idx, float base_x, floa
     float v1 = 1.0f - (py0 / BIRD_TEX_H);
     float v0 = 1.0f - (py1 / BIRD_TEX_H);
 
-    setQuad(v, x0, y0, x1, y1, u0, v0, u1, v1);
+    gfxSetQuad2D(v, x0, y0, x1, y1, u0, v0, u1, v1);
 }
 
 void battleSceneInit(void) {
@@ -94,16 +81,16 @@ void battleSceneInit(void) {
     s_vbo = (TileVertex*)linearAlloc(30 * sizeof(TileVertex));
     if (s_vbo) {
         // Quad 0 (vertici 0..5): Sfondo schermo intero 400x240
-        setQuad(&s_vbo[0], 0.0f, 0.0f, 400.0f, 240.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+        gfxSetQuad2D(&s_vbo[0], 0.0f, 0.0f, 400.0f, 240.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 
         // Quad 1 (vertici 6..11): Cerchio base nemico (in alto a destra)
-        setQuad(&s_vbo[6], 200.0f, 93.0f, 370.0f, 137.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+        gfxSetQuad2D(&s_vbo[6], 200.0f, 93.0f, 370.0f, 137.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 
         // Quad 2 (vertici 12..17): Pokemon selvatico sempre uccello_front
         updateBirdSheetQuad(&s_vbo[12], 0, ENEMY_BASE_CENTER_X, ENEMY_GROUND_Y, OPPONENT_ANCHOR_X, OPPONENT_ANCHOR_Y, OPPONENT_SCALE);
 
         // Quad 3 (vertici 18..23): Cerchio base giocatore (in basso a sinistra, a filo inferiore)
-        setQuad(&s_vbo[18], -30.0f, 196.0f, 250.0f, 254.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+        gfxSetQuad2D(&s_vbo[18], -30.0f, 196.0f, 250.0f, 254.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 
         // Quad 4 (vertici 24..29): Pokemon giocatore sempre uccello_back
         updateBirdSheetQuad(&s_vbo[24], 0, PLAYER_BASE_CENTER_X, PLAYER_GROUND_Y, PLAYER_ANCHOR_X, PLAYER_ANCHOR_Y, PLAYER_SCALE);

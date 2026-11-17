@@ -64,7 +64,8 @@ DS_MAP_TEX  := $(patsubst %.png,%.t3x,$(notdir $(wildcard $(DATA)/ds_map/*.png))
 
 BINFILES    := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.bin))) \
                $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.wav))) \
-               player.t3x npcs.t3x flower_overlay.t3x grass_overlay.t3x \
+               player.t3x npcs.t3x dialogue_box.t3x ui_font.t3x \
+               flower_overlay.t3x grass_overlay.t3x \
                battle_bg.t3x battle_base_enemy.t3x battle_base_player.t3x uccello_front.t3x uccello_back.t3x \
                vshader.shbin $(DS_MAP_TEX)
 
@@ -166,6 +167,22 @@ npcs.t3x: ../data/npcs.png
 	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
 
 npcs.t3x.o npcs_t3x.h: npcs.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+dialogue_box.t3x: ../data/dialogue_box.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+dialogue_box.t3x.o dialogue_box_t3x.h: dialogue_box.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+ui_font.t3x: ../data/ui_font.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+ui_font.t3x.o ui_font_t3x.h: ui_font.t3x
 	@echo $(notdir $<)
 	@$(bin2o)
 
