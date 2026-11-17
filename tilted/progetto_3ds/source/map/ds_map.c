@@ -59,6 +59,7 @@ static u32            dsVertexCount = 0;
 static u32            dsPlayerFirst = 0;
 static u32            dsFlowerFirst = 0;
 static u32            dsGrassFirst  = 0;
+static u32            dsContTreeFirst = 0;
 static u32            dsFirst[DS_MAP_GROUP_COUNT];
 static DsMapGroupData dsGroups[DS_MAP_GROUP_COUNT];
 static C3D_Tex        dsTex[DS_MAP_GROUP_COUNT];
@@ -91,6 +92,57 @@ static float dsDist = DS_CAM_DIST_START;
 //                      gy = 0..31 corrisponde a OBJ Y = +15..-16)
 static DsTileType dsGridType[DS_GRID_SIZE][DS_GRID_SIZE];
 static float      dsGridHeight[DS_GRID_SIZE][DS_GRID_SIZE];
+
+#define MAX_SINGLE_TREES 64
+#define MAX_CONT_TREES   32
+
+typedef struct {
+    u32 firstVertex;
+    u32 secondVertex; // Usato per conttree (top foliage in gruppo 4)
+    int gx_min;
+    int gx_max;
+    int gy_north;
+    int gy_south;
+} DsSingleTree;
+
+static DsSingleTree dsTrees[MAX_SINGLE_TREES];
+static u32          dsTreeCount = 0;
+static DsSingleTree dsContTrees[MAX_CONT_TREES];
+static u32          dsContTreeCount = 0;
+
+static inline bool isPlayerBehindSingleTree(const DsSingleTree* tr, float pgx, float pgy) {
+    return (pgx >= (float)tr->gx_min - 0.45f &&
+            pgx <= (float)tr->gx_max + 0.45f &&
+            pgy >= (float)(tr->gy_north - 2) - 0.45f &&
+            pgy <= (float)tr->gy_north + 0.45f);
+}
+
+static void buildContTreeSliceQuad(TileVertex* dst, const float* qv, float minX, float maxX, int k, int numSlices) {
+    float u_at_minX = 0.0f, u_at_maxX = 0.0f;
+    for (int v = 0; v < 6; ++v) {
+        const float* pt = &qv[v * 5];
+        if (fabsf(pt[0] - minX) < 0.05f) u_at_minX = pt[3];
+        if (fabsf(pt[0] - maxX) < 0.05f) u_at_maxX = pt[3];
+    }
+    float x0 = minX + 2.0f * (float)k;
+    float x1 = x0 + 2.0f;
+    float u0 = u_at_minX + (u_at_maxX - u_at_minX) * ((float)k / (float)numSlices);
+    float u1 = u_at_minX + (u_at_maxX - u_at_minX) * ((float)(k + 1) / (float)numSlices);
+
+    for (int v = 0; v < 6; ++v) {
+        const float* s = &qv[v * 5];
+        bool isLeft = (fabsf(s[0] - minX) < 0.05f);
+        float sx = isLeft ? x0 : x1;
+        float su = isLeft ? u0 : u1;
+        dst[v].x  = (sx   - dsCenterX) * dsScale;
+        dst[v].y  = (s[2] - dsMinZ)    * dsScale;
+        dst[v].z  = -(s[1] - dsCenterY) * dsScale;
+        dst[v].u  = su;
+        dst[v].v  = s[4];
+        dst[v].ox = 0.0f;
+        dst[v].oy = 0.0f;
+    }
+}
 
 // Converte (gx, gy) della griglia [0..31] nel centro cella in coordinate OBJ
 static inline void gridToObjCenter(float gx, float gy, float* ox, float* oy) {
@@ -228,6 +280,7 @@ static void dsBuildCollisionGrid(void) {
     //    - La base del tronco (minY + 0.4f) è SOLIDA.
     //    - Una casella in più di collisione dietro a ogni albero (minY + 1.4f): SOLIDA
     //      così non è più possibile passare in mezzo agli alberi della foresta!
+    dsTreeCount = 0;
     for (u32 i = 0; i + 23 < dsGroups[1].vertexCount; i += 24) {
         // Il 4° quad (vertici i+18 .. i+23) è la base a terra del tronco
         const float* b0 = &dsGroups[1].verts[(i + 18) * 5];
@@ -238,25 +291,45 @@ static void dsBuildCollisionGrid(void) {
         float maxX = fmaxf(b0[0], fmaxf(b1[0], b2[0]));
         float minY = fminf(b0[1], fminf(b1[1], b2[1]));
 
+        int tree_gx_min = DS_GRID_SIZE, tree_gx_max = -1;
+        int tree_gy_north = DS_GRID_SIZE, tree_gy_south = -1;
+
         for (float x = minX + 0.5f; x < maxX; x += 1.0f) {
             int gx, gy;
             // 1. Base del tronco: solido
             if (objToGrid(x, minY + 0.4f, &gx, &gy)) {
                 dsGridType[gy][gx] = DS_TILE_SOLID;
+                if (gx < tree_gx_min) tree_gx_min = gx;
+                if (gx > tree_gx_max) tree_gx_max = gx;
+                tree_gy_south = gy;
             }
             // 2. Una casella in più di collisione dietro all'albero: solido
             if (objToGrid(x, minY + 1.4f, &gx, &gy)) {
                 dsGridType[gy][gx] = DS_TILE_SOLID;
+                if (gx < tree_gx_min) tree_gx_min = gx;
+                if (gx > tree_gx_max) tree_gx_max = gx;
+                tree_gy_north = gy;
             }
+        }
+
+        if (dsTreeCount < MAX_SINGLE_TREES && tree_gx_min <= tree_gx_max && tree_gy_north <= tree_gy_south) {
+            dsTrees[dsTreeCount++] = (DsSingleTree){
+                .firstVertex  = dsFirst[1] + i,
+                .secondVertex = 0,
+                .gx_min       = tree_gx_min,
+                .gx_max       = tree_gx_max,
+                .gy_north     = tree_gy_north,
+                .gy_south     = tree_gy_south
+            };
         }
     }
 
     // 4. Alberi continui:
-    //    - conttree_t_lm2 (gruppo 4, foglie): IGNORATO così ci passi sotto!
+    //    - conttree_t_lm2 (gruppo 4, foglie): IGNORATO per collisione così ci passi sotto!
     //    - conttree_b_lm2 (gruppo 3, tronchi):
-    //      Ogni sezione di tronchi continui ha 2 quad (12 vertici).
-    //      La riga inferiore (base tronco, minY + 0.4f) è SOLIDA.
-    //      Una casella in più di collisione dietro (minY + 1.4f) è SOLIDA.
+    //      Ogni sezione di tronchi continui ha 2 quad (12 vertici) ed è suddivisa
+    //      in singoli alberi 2x2 nel VBO così ogni albero può diventare semitrasparente.
+    dsContTreeCount = 0;
     for (u32 s = 0; s + 11 < dsGroups[3].vertexCount; s += 12) {
         float minX = 1e30f, maxX = -1e30f;
         float minY = 1e30f;
@@ -278,6 +351,42 @@ static void dsBuildCollisionGrid(void) {
                 dsGridType[gy][gx] = DS_TILE_SOLID;
             }
         }
+
+        int numSlices = (int)roundf((maxX - minX) / 2.0f);
+        if (numSlices < 1) numSlices = 1;
+
+        for (int k = 0; k < numSlices; ++k) {
+            if (dsContTreeCount >= MAX_CONT_TREES || !dsVbo) break;
+
+            float sliceMinX = minX + 2.0f * (float)k;
+            int gx0 = 0, gx1 = 0, gy_s = 0, gy_n = 0;
+            bool ok0 = objToGrid(sliceMinX + 0.5f, minY + 0.4f, &gx0, &gy_s);
+            bool ok1 = objToGrid(sliceMinX + 1.5f, minY + 1.4f, &gx1, &gy_n);
+            if (!ok0 || !ok1) continue;
+
+            u32 baseVertB = dsContTreeFirst + dsContTreeCount * 24;
+            u32 baseVertT = baseVertB + 12;
+
+            buildContTreeSliceQuad(&dsVbo[baseVertB + 0], &dsGroups[3].verts[(s + 0) * 5], minX, maxX, k, numSlices);
+            buildContTreeSliceQuad(&dsVbo[baseVertB + 6], &dsGroups[3].verts[(s + 6) * 5], minX, maxX, k, numSlices);
+
+            if (s + 11 < dsGroups[4].vertexCount) {
+                buildContTreeSliceQuad(&dsVbo[baseVertT + 0], &dsGroups[4].verts[(s + 0) * 5], minX, maxX, k, numSlices);
+                buildContTreeSliceQuad(&dsVbo[baseVertT + 6], &dsGroups[4].verts[(s + 6) * 5], minX, maxX, k, numSlices);
+            }
+
+            dsContTrees[dsContTreeCount++] = (DsSingleTree){
+                .firstVertex  = baseVertB,
+                .secondVertex = baseVertT,
+                .gx_min       = (gx0 < gx1) ? gx0 : gx1,
+                .gx_max       = (gx0 > gx1) ? gx0 : gx1,
+                .gy_north     = (gy_n < gy_s) ? gy_n : gy_s,
+                .gy_south     = (gy_n > gy_s) ? gy_n : gy_s
+            };
+        }
+    }
+    if (dsVbo && dsContTreeCount > 0) {
+        GSPGPU_FlushDataCache(&dsVbo[dsContTreeFirst], dsContTreeCount * 24 * sizeof(TileVertex));
     }
 
     // Albero all'entrata della foresta (gx=21..22):
@@ -342,11 +451,12 @@ void dsMapInit(void) {
     if (extent <= 0.0f) extent = 1.0f;
     dsScale = DS_FIT_SIZE / extent;
 
-    // 2. Buffer dei vertici della mappa, del giocatore (+6), overlay fiori (+24) e overlay erba (+24) in linear RAM
-    dsPlayerFirst = dsVertexCount;
-    dsFlowerFirst = dsVertexCount + 6;
-    dsGrassFirst  = dsVertexCount + 6 + 24;
-    dsVbo = (TileVertex*)linearAlloc((dsVertexCount + 6 + 24 + 24) * sizeof(TileVertex));
+    // 2. Buffer dei vertici della mappa, del giocatore (+6), overlay fiori (+24), overlay erba (+24) e fettine conttree (+MAX_CONT_TREES*24) in linear RAM
+    dsPlayerFirst   = dsVertexCount;
+    dsFlowerFirst   = dsVertexCount + 6;
+    dsGrassFirst    = dsVertexCount + 6 + 24;
+    dsContTreeFirst = dsVertexCount + 6 + 24 + 24;
+    dsVbo = (TileVertex*)linearAlloc((dsVertexCount + 6 + 24 + 24 + MAX_CONT_TREES * 24) * sizeof(TileVertex));
     if (!dsVbo) return;
 
     for (u32 g = 0; g < DS_MAP_GROUP_COUNT; ++g) {
@@ -682,6 +792,10 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
     int flower_step = (dsFlowerAnimTicks / 14) % 8;
     int flower_frame = flower_step_to_frame[flower_step];
 
+    float pgx, pgy;
+    playerGetGridPos(&pgx, &pgy);
+    bool hasFadedTrees = false;
+
     // 1. Disegna tutti i materiali della mappa DS
     for (u32 g = 0; g < DS_MAP_GROUP_COUNT; ++g) {
         if (dsGroups[g].vertexCount == 0) continue;
@@ -690,7 +804,34 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
         } else {
             C3D_TexBind(0, &dsTex[g]);
         }
-        C3D_DrawArrays(GPU_TRIANGLES, (int)dsFirst[g], (int)dsGroups[g].vertexCount);
+
+        if (g == 1 && dsTreeCount > 0) {
+            for (u32 t = 0; t < dsTreeCount; ++t) {
+                if (isPlayerBehindSingleTree(&dsTrees[t], pgx, pgy)) {
+                    hasFadedTrees = true;
+                    continue;
+                }
+                C3D_DrawArrays(GPU_TRIANGLES, (int)dsTrees[t].firstVertex, 24);
+            }
+        } else if (g == 3 && dsContTreeCount > 0) {
+            for (u32 t = 0; t < dsContTreeCount; ++t) {
+                if (isPlayerBehindSingleTree(&dsContTrees[t], pgx, pgy)) {
+                    hasFadedTrees = true;
+                    continue;
+                }
+                C3D_DrawArrays(GPU_TRIANGLES, (int)dsContTrees[t].firstVertex, 12);
+            }
+        } else if (g == 4 && dsContTreeCount > 0) {
+            for (u32 t = 0; t < dsContTreeCount; ++t) {
+                if (isPlayerBehindSingleTree(&dsContTrees[t], pgx, pgy)) {
+                    hasFadedTrees = true;
+                    continue;
+                }
+                C3D_DrawArrays(GPU_TRIANGLES, (int)dsContTrees[t].secondVertex, 12);
+            }
+        } else {
+            C3D_DrawArrays(GPU_TRIANGLES, (int)dsFirst[g], (int)dsGroups[g].vertexCount);
+        }
     }
 
     // 2. Costruisce e disegna il quad 3D del giocatore sulla mappa DS (allocato in coda a dsVbo)
@@ -760,5 +901,45 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
             C3D_DrawArrays(GPU_TRIANGLES, (int)dsGrassFirst, (int)(grassQuads * 6));
             C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
         }
+    }
+
+    // 5. Disegna in semitrasparenza il singolo albero davanti al giocatore quando ci passa dietro
+    if (hasFadedTrees && dsVbo) {
+        buf = C3D_GetBufInfo();
+        BufInfo_Init(buf);
+        BufInfo_Add(buf, dsVbo, sizeof(TileVertex), 3, 0x210);
+
+        C3D_TexBind(0, &dsTex[1]);
+
+        C3D_TexEnv* env = C3D_GetTexEnv(0);
+        C3D_TexEnvInit(env);
+        C3D_TexEnvSrc(env, C3D_RGB, GPU_TEXTURE0, 0, 0);
+        C3D_TexEnvFunc(env, C3D_RGB, GPU_REPLACE);
+        C3D_TexEnvSrc(env, C3D_Alpha, GPU_TEXTURE0, GPU_CONSTANT, 0);
+        C3D_TexEnvFunc(env, C3D_Alpha, GPU_MODULATE);
+        C3D_TexEnvColor(env, 0x80FFFFFF);
+
+        C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
+        for (u32 t = 0; t < dsTreeCount; ++t) {
+            if (isPlayerBehindSingleTree(&dsTrees[t], pgx, pgy)) {
+                C3D_DrawArrays(GPU_TRIANGLES, (int)dsTrees[t].firstVertex, 24);
+            }
+        }
+
+        for (u32 t = 0; t < dsContTreeCount; ++t) {
+            if (isPlayerBehindSingleTree(&dsContTrees[t], pgx, pgy)) {
+                // Disegna prima conttree_t (chioma superiore, più vicina alla camera)
+                // e poi conttree_b (chioma inferiore e tronco) per evitare doppio alpha blending!
+                C3D_TexBind(0, &dsTex[4]);
+                C3D_DrawArrays(GPU_TRIANGLES, (int)dsContTrees[t].secondVertex, 12);
+                C3D_TexBind(0, &dsTex[3]);
+                C3D_DrawArrays(GPU_TRIANGLES, (int)dsContTrees[t].firstVertex, 12);
+            }
+        }
+
+        env = C3D_GetTexEnv(0);
+        C3D_TexEnvInit(env);
+        C3D_TexEnvSrc(env, C3D_Both, GPU_TEXTURE0, 0, 0);
+        C3D_TexEnvFunc(env, C3D_Both, GPU_REPLACE);
     }
 }
