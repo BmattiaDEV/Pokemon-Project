@@ -34,7 +34,6 @@ static int         s_npcCount = 0;
 static C3D_Tex     s_npcTex;
 static bool        s_npcTexReady = false;
 static TileVertex* s_npcVbo = NULL;
-static bool        s_vboDirty = true;
 
 static int getNpcAnimStep(const Npc* npc) {
     if (!npc->moving) {
@@ -112,20 +111,11 @@ static void buildNpcVbo(float cam_x, float cam_y, float cam_z, float cam_dist) {
     }
 
     GSPGPU_FlushDataCache(s_npcVbo, (u32)(s_npcCount * 6) * sizeof(TileVertex));
-    s_vboDirty = false;
 }
 
 void npcInit(void) {
     s_npcCount = 0;
-    s_vboDirty = true;
-
-    Tex3DS_Texture nt3x = Tex3DS_TextureImport(npcs_t3x, npcs_t3x_size, &s_npcTex, NULL, false);
-    if (nt3x) {
-        Tex3DS_TextureFree(nt3x);
-        C3D_TexSetFilter(&s_npcTex, GPU_NEAREST, GPU_NEAREST);
-        C3D_TexSetWrap(&s_npcTex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
-        s_npcTexReady = true;
-    }
+    s_npcTexReady = texLoadFromMem(npcs_t3x, npcs_t3x_size, &s_npcTex, GPU_NEAREST, GPU_CLAMP_TO_EDGE);
 
     if (!s_npcVbo) {
         s_npcVbo = (TileVertex*)linearAlloc(MAX_NPCS * 6 * sizeof(TileVertex));
@@ -179,7 +169,6 @@ int npcAdd(int gx, int gy, PlayerDirection dir, int sprite_id, NpcMoveMode move_
         .step_parity   = 0,
         .wait_frames   = 30 + (idx * 25)
     };
-    s_vboDirty = true;
     return idx;
 }
 
@@ -205,7 +194,6 @@ void npcUpdateAll(void) {
                 npc->pos_x = (float)npc->grid_x + (float)(npc->target_x - npc->grid_x) * npc->move_progress;
                 npc->pos_y = (float)npc->grid_y + (float)(npc->target_y - npc->grid_y) * npc->move_progress;
             }
-            s_vboDirty = true;
             continue;
         }
 
@@ -220,7 +208,6 @@ void npcUpdateAll(void) {
 
         int d = rand() % 4;
         npc->dir = (PlayerDirection)d;
-        s_vboDirty = true;
 
         int nx = npc->grid_x + s_dx[d];
         int ny = npc->grid_y + s_dy[d];

@@ -30,18 +30,20 @@ int main(int argc, char** argv) {
         u32 kHeld = hidKeysHeld();
         if (kDown & KEY_START) break;
 
+        // 1. Aggiorna logica di gioco (incontro oppure esplorazione mappa)
         if (encounterGetState() == GAME_STATE_ENCOUNTER) {
             if (kDown & KEY_A) {
                 encounterDismiss();
             }
-            rendererDrawEncounterFrame(encounterGetWildMonIndex());
         } else {
             dsMapUpdate(kHeld, kDown);
-            if (encounterGetState() == GAME_STATE_ENCOUNTER) {
-                rendererDrawEncounterFrame(encounterGetWildMonIndex());
-            } else {
-                rendererDrawFrame();
-            }
+        }
+
+        // 2. Renderizza la scena attiva sullo schermo superiore
+        if (encounterGetState() == GAME_STATE_ENCOUNTER) {
+            rendererDrawEncounterFrame(encounterGetWildMonIndex());
+        } else {
+            rendererDrawFrame();
         }
     }
 

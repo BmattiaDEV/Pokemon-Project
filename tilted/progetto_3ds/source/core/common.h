@@ -41,3 +41,19 @@ typedef struct {
     float u, v;       // Coordinate UV della texture
     float ox, oy;     // Offset 2D nello spazio vista (inOff.xy)
 } TileVertex;
+
+// Helper condiviso per importare una texture .t3x da memoria con filtro e wrap configurati
+static inline bool texLoadFromMem(
+    const void* data,
+    u32 size,
+    C3D_Tex* outTex,
+    GPU_TEXTURE_FILTER_PARAM filter,
+    GPU_TEXTURE_WRAP_PARAM wrap)
+{
+    Tex3DS_Texture t3x = Tex3DS_TextureImport(data, size, outTex, NULL, false);
+    if (!t3x) return false;
+    Tex3DS_TextureFree(t3x);
+    C3D_TexSetFilter(outTex, filter, filter);
+    C3D_TexSetWrap(outTex, wrap, wrap);
+    return true;
+}

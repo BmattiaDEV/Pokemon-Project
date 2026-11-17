@@ -81,21 +81,14 @@ static void updateBirdSheetQuad(TileVertex* v, int frame_idx, float base_x, floa
     setQuad(v, x0, y0, x1, y1, u0, v0, u1, v1);
 }
 
-static void loadTex(const void* data, u32 size, C3D_Tex* outTex, GPU_TEXTURE_FILTER_PARAM filter) {
-    Tex3DS_Texture t3x = Tex3DS_TextureImport(data, size, outTex, NULL, false);
-    if (t3x) Tex3DS_TextureFree(t3x);
-    C3D_TexSetFilter(outTex, filter, filter);
-    C3D_TexSetWrap(outTex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
-}
-
 void battleSceneInit(void) {
     if (s_ready) return;
 
-    loadTex(battle_bg_t3x, battle_bg_t3x_size, &s_texBg, GPU_LINEAR);
-    loadTex(battle_base_enemy_t3x, battle_base_enemy_t3x_size, &s_texBaseEnemy, GPU_NEAREST);
-    loadTex(battle_base_player_t3x, battle_base_player_t3x_size, &s_texBasePlayer, GPU_NEAREST);
-    loadTex(uccello_front_t3x, uccello_front_t3x_size, &s_texOpponentFront, GPU_NEAREST);
-    loadTex(uccello_back_t3x, uccello_back_t3x_size, &s_texPlayerBack, GPU_NEAREST);
+    texLoadFromMem(battle_bg_t3x, battle_bg_t3x_size, &s_texBg, GPU_LINEAR, GPU_CLAMP_TO_EDGE);
+    texLoadFromMem(battle_base_enemy_t3x, battle_base_enemy_t3x_size, &s_texBaseEnemy, GPU_NEAREST, GPU_CLAMP_TO_EDGE);
+    texLoadFromMem(battle_base_player_t3x, battle_base_player_t3x_size, &s_texBasePlayer, GPU_NEAREST, GPU_CLAMP_TO_EDGE);
+    texLoadFromMem(uccello_front_t3x, uccello_front_t3x_size, &s_texOpponentFront, GPU_NEAREST, GPU_CLAMP_TO_EDGE);
+    texLoadFromMem(uccello_back_t3x, uccello_back_t3x_size, &s_texPlayerBack, GPU_NEAREST, GPU_CLAMP_TO_EDGE);
 
     // Alloca VBO lineare per i 5 quad (30 vertici)
     s_vbo = (TileVertex*)linearAlloc(30 * sizeof(TileVertex));
