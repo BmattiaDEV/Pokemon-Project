@@ -1,6 +1,7 @@
 #include "ds_map.h"
 #include "ds_map_model.h"
 #include "player.h"
+#include "npc.h"
 #include "player_t3x.h"
 #include "flower_overlay_t3x.h"
 #include "grass_overlay_t3x.h"
@@ -455,10 +456,12 @@ void dsMapInit(void) {
     }
     dsWaterAnimTime = 0.0f;
 
+    npcInit();
     dsReady = true;
 }
 
 void dsMapExit(void) {
+    npcExit();
     if (dsReady) {
         for (u32 g = 0; g < DS_MAP_GROUP_COUNT; ++g) {
             C3D_TexDelete(&dsTex[g]);
@@ -502,6 +505,9 @@ bool dsMapCanMove(int from_gx, int from_gy, int to_gx, int to_gy) {
     }
     DsTileType destType = dsGridType[to_gy][to_gx];
     if (destType == DS_TILE_VOID || destType == DS_TILE_SOLID) {
+        return false;
+    }
+    if (npcIsAt(to_gx, to_gy)) {
         return false;
     }
 
@@ -585,6 +591,9 @@ void dsMapUpdate(u32 kHeld, u32 kDown) {
 
     // Muove il giocatore sulla mappa DS (D-Pad o Circle Pad)
     playerUpdate(kDown, kHeld);
+
+    // Aggiorna il movimento autonomo degli NPC (entro un'area max 3x3 dallo spawn)
+    npcUpdateAll();
 }
 
 // Costruisce un quad 3D leggermente rialzato e inclinato verso sud per gli overlay
@@ -693,40 +702,41 @@ void dsMapDrawFrame(C3D_Mtx* projection, int uLoc_projection, int uLoc_view) {
         C3D_DrawArrays(GPU_TRIANGLES, (int)dsPlayerFirst, 6);
     }
 
+    // 2b. Disegna gli NPC statici con lo stesso Z-buffer 3D del giocatore
+    npcDrawAll();
+
     // 3 & 4. Overlay dei fiori (rhana) e dell'erba alta (nectgr_lm42) in primo piano sui piedi:
     //        usiamo playerShouldOverlayTile() e il vero Z-buffer (GPU_GEQUAL) per evitare che
     //        il fiore compaia davanti alla testa mentre il personaggio sale verso nord.
     if (dsVbo && (dsFlowerTexReady || dsGrassTexReady)) {
-        float pgx, pgy;
-        playerGetGridPos(&pgx, &pgy);
-
-        int min_gx = (int)floorf(pgx - 1.0f);
-        int max_gx = (int)ceilf(pgx + 1.0f);
-        int min_gy = (int)floorf(pgy - 1.0f);
-        int max_gy = (int)ceilf(pgy + 1.0f);
-        if (min_gx < 0) min_gx = 0;
-        if (max_gx >= DS_GRID_SIZE) max_gx = DS_GRID_SIZE - 1;
-        if (min_gy < 0) min_gy = 0;
-        if (max_gy >= DS_GRID_SIZE) max_gy = DS_GRID_SIZE - 1;
-
         u32 flowerQuads = 0;
         u32 grassQuads  = 0;
 
-        for (int gy = min_gy; gy <= max_gy; ++gy) {
-            for (int gx = min_gx; gx <= max_gx; ++gx) {
-                if (!playerShouldOverlayTile(gx, gy)) continue;
+        for (int gy = 0; gy < DS_GRID_SIZE; ++gy) {
+            for (int gx = 0; gx < DS_GRID_SIZE; ++gx) {
+                bool hasFlower = dsFlowerTexReady && dsGridHasFlowers[gy][gx];
+                bool hasGrass  = dsGrassTexReady && dsGridHasGrass[gy][gx];
+                if (!hasFlower && !hasGrass) continue;
 
-                if (dsFlowerTexReady && dsGridHasFlowers[gy][gx] && flowerQuads < 4) {
-                    // Stessa quota twy del tile terreno (nessuno slittamento visivo dei petali):
-                    // playerShouldOverlayTile() garantisce che compaia solo quando i piedi sono sul fiore.
+                bool overPlayer = playerShouldOverlayTile(gx, gy);
+                bool overNpc    = npcShouldOverlayTile(gx, gy) && !playerIsAt(gx, gy + 1) && !npcIsAt(gx, gy + 1);
+                if (!overPlayer && !overNpc) continue;
+
+                if (hasFlower && flowerQuads < 4) {
                     buildTileOverlayQuad(&dsVbo[dsFlowerFirst + flowerQuads * 6], gx, gy, 0.0f, 0.0f);
                     flowerQuads++;
                 }
-                if (dsGrassTexReady && dsGridHasGrass[gy][gx] && grassQuads < 4) {
+                if (hasGrass && grassQuads < 4) {
                     buildTileOverlayQuad(&dsVbo[dsGrassFirst + grassQuads * 6], gx, gy, 1.2f, 4.5f);
                     grassQuads++;
                 }
             }
+        }
+
+        if (flowerQuads > 0 || grassQuads > 0) {
+            buf = C3D_GetBufInfo();
+            BufInfo_Init(buf);
+            BufInfo_Add(buf, dsVbo, sizeof(TileVertex), 3, 0x210);
         }
 
         if (flowerQuads > 0) {

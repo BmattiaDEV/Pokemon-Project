@@ -156,10 +156,17 @@ void playerGetWorldPos(float* out_x, float* out_y, float* out_z) {
     dsMapGetWorldPos(s_player.pos_x, s_player.pos_y, out_x, out_y, out_z);
 }
 
-void playerBuildQuad(TileVertex out_verts[6]) {
-    float wx, wy, wz;
-    playerGetWorldPos(&wx, &wy, &wz);
+bool playerIsAt(int gx, int gy) {
+    if (s_player.grid_x == gx && s_player.grid_y == gy) {
+        return true;
+    }
+    if (s_player.moving && s_player.target_x == gx && s_player.target_y == gy) {
+        return true;
+    }
+    return false;
+}
 
+void playerBuildBillboardQuad(TileVertex out_verts[6], float wx, float wy, float wz, float u_left, float v_bottom, float u_right, float v_top) {
     float half_pw = PLAYER_SPRITE_W * 0.5f;
     float x_left  = wx - half_pw;
     float x_right = wx + half_pw;
@@ -168,12 +175,6 @@ void playerBuildQuad(TileVertex out_verts[6]) {
     float z_top = z_bot - PLAYER_SLANT_Z;
     float y_bot = wy + 0.5f;
     float y_top = y_bot + PLAYER_RISE_Y;
-
-    int frame = getPlayerAnimFrame();
-    float u_left   = 0.0f;
-    float u_right  = 1.0f;
-    float v_top    = 1.0f - ((float)frame * PLAYER_SPRITE_H / PLAYER_TEX_H);
-    float v_bottom = 1.0f - ((float)(frame + 1) * PLAYER_SPRITE_H / PLAYER_TEX_H);
 
     out_verts[0] = (TileVertex){x_left,  y_bot, z_bot, u_left,  v_bottom, 0.0f, 0.0f};
     out_verts[1] = (TileVertex){x_right, y_bot, z_bot, u_right, v_bottom, 0.0f, 0.0f};
@@ -184,41 +185,55 @@ void playerBuildQuad(TileVertex out_verts[6]) {
     out_verts[5] = (TileVertex){x_left,  y_top, z_top, u_left,  v_top,    0.0f, 0.0f};
 }
 
-bool playerShouldOverlayTile(int gx, int gy) {
-    if (!s_player.moving) {
-        return (gx == s_player.grid_x && gy == s_player.grid_y);
+void playerBuildQuad(TileVertex out_verts[6]) {
+    float wx, wy, wz;
+    playerGetWorldPos(&wx, &wy, &wz);
+
+    int frame = getPlayerAnimFrame();
+    float v_top    = 1.0f - ((float)frame * PLAYER_SPRITE_H / PLAYER_TEX_H);
+    float v_bottom = 1.0f - ((float)(frame + 1) * PLAYER_SPRITE_H / PLAYER_TEX_H);
+
+    playerBuildBillboardQuad(out_verts, wx, wy, wz, 0.0f, v_bottom, 1.0f, v_top);
+}
+
+bool characterShouldOverlayTile(
+    int gx, int gy,
+    int cur_x, int cur_y,
+    int target_x, int target_y,
+    PlayerDirection dir,
+    bool moving,
+    float move_progress)
+{
+    if (!moving) {
+        return (gx == cur_x && gy == cur_y);
     }
 
-    switch (s_player.dir) {
+    switch (dir) {
         case DIR_DOWN:
-            // Movimento verso il basso (Sud):
-            // Il tile a monte (grid_y) è alle spalle del personaggio e non deve
-            // MAI mostrare l'overlay sul corpo o sulla testa.
-            // Solo il tile di arrivo (target_y) mostra l'overlay non appena i piedi vi entrano.
-            if (gx == s_player.target_x && gy == s_player.target_y) {
-                return (s_player.move_progress >= 0.40f);
+            if (gx == target_x && gy == target_y) {
+                return (move_progress >= 0.40f);
             }
             return false;
 
         case DIR_UP:
-            // Movimento verso l'alto (Nord):
-            // Il tile di partenza (grid_y) è a Sud del personaggio e copre i piedi nei primi istanti del passo.
-            // Il tile a Nord (target_y) NON deve mostrare l'overlay durante la salita,
-            // altrimenti finisce sopra la testa e la schiena del personaggio.
-            // L'overlay del tile di arrivo si attiverà non appena il personaggio vi si ferma sopra.
-            if (gx == s_player.grid_x && gy == s_player.grid_y) {
-                return (s_player.move_progress < 0.40f);
+            if (gx == cur_x && gy == cur_y) {
+                return (move_progress < 0.40f);
             }
             return false;
 
         case DIR_LEFT:
         case DIR_RIGHT:
-            if (gy != s_player.grid_y) return false;
-            if (s_player.move_progress < 0.50f) {
-                return (gx == s_player.grid_x);
-            } else {
-                return (gx == s_player.target_x);
-            }
+            if (gy != cur_y) return false;
+            return (gx == cur_x || gx == target_x);
     }
     return false;
+}
+
+bool playerShouldOverlayTile(int gx, int gy) {
+    return characterShouldOverlayTile(
+        gx, gy,
+        s_player.grid_x, s_player.grid_y,
+        s_player.target_x, s_player.target_y,
+        s_player.dir, s_player.moving, s_player.move_progress
+    );
 }

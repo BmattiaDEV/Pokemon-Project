@@ -15,9 +15,9 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET      := $(notdir $(CURDIR))
 BUILD       := build
-SOURCES     := source source/core source/map source/player source/render
+SOURCES     := source source/core source/map source/player source/npc source/render
 DATA        := data
-INCLUDES    := source source/core source/map source/player source/render
+INCLUDES    := source source/core source/map source/player source/npc source/render
 
 #---------------------------------------------------------------------------------
 # Opzioni di compilazione
@@ -64,7 +64,7 @@ DS_MAP_TEX  := $(patsubst %.png,%.t3x,$(notdir $(wildcard $(DATA)/ds_map/*.png))
 
 BINFILES    := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.bin))) \
                $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.wav))) \
-               player.t3x flower_overlay.t3x grass_overlay.t3x \
+               player.t3x npcs.t3x flower_overlay.t3x grass_overlay.t3x \
                battle_bg.t3x battle_base_enemy.t3x battle_base_player.t3x uccello_front.t3x uccello_back.t3x \
                vshader.shbin $(DS_MAP_TEX)
 
@@ -158,6 +158,14 @@ player.t3x: ../data/player.png
 	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
 
 player.t3x.o player_t3x.h: player.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+npcs.t3x: ../data/npcs.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+npcs.t3x.o npcs_t3x.h: npcs.t3x
 	@echo $(notdir $<)
 	@$(bin2o)
 

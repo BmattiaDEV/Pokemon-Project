@@ -127,6 +127,7 @@ ds_map.o: \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/wcliff_lm4_t3x.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/searock_lm15_t3x.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/player/player.h \
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/npc/npc.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/player_t3x.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/flower_overlay_t3x.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/grass_overlay_t3x.h \
@@ -267,6 +268,7 @@ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/lgreen
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/wcliff_lm4_t3x.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/searock_lm15_t3x.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/player/player.h:
+C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/npc/npc.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/player_t3x.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/flower_overlay_t3x.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/grass_overlay_t3x.h:
