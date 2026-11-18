@@ -91,6 +91,9 @@ void playerUpdate(u32 kDown, u32 kHeld) {
             s_player.move_progress = 0.0f;
             s_player.moving        = false;
             s_player.step_parity  ^= 1;
+            if (dsMapTryWarpAt(s_player.grid_x, s_player.grid_y)) {
+                return;
+            }
             encounterOnStep(s_player.grid_x, s_player.grid_y);
             if (encounterGetState() == GAME_STATE_ENCOUNTER) {
                 return;

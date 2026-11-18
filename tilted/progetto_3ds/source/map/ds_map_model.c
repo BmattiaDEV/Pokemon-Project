@@ -6015,95 +6015,115 @@ static const float ds_searock_lm15[] = {
     12.0f, -9.0f, 0.75f, 1.0f, -1.0f,
 };
 
-void dsMapFillGroups(DsMapGroupData g[DS_MAP_GROUP_COUNT]) {
+const u32 g_dsMap0GroupCount = 18;
+
+void dsMap0FillGroups(DsMapGroupData g[DS_MAX_MAP_GROUPS]) {
     // ngrass_lm2
     g[0].verts = ds_ngrass_lm2;
     g[0].vertexCount = 213;
     g[0].tex = ngrass_lm2_t3x;
     g[0].texSize = ngrass_lm2_t3x_size;
+    g[0].role = DS_MAT_GROUND_WALK;
     // tree01_lm2
     g[1].verts = ds_tree01_lm2;
     g[1].vertexCount = 840;
     g[1].tex = tree01_lm2_t3x;
     g[1].texSize = tree01_lm2_t3x_size;
+    g[1].role = DS_MAT_TREE_SINGLE;
     // tshadow_lm2
     g[2].verts = ds_tshadow_lm2;
     g[2].vertexCount = 246;
     g[2].tex = tshadow_lm2_t3x;
     g[2].texSize = tshadow_lm2_t3x_size;
+    g[2].role = DS_MAT_TREE_SHADOW;
     // conttree_b_lm2
     g[3].verts = ds_conttree_b_lm2;
     g[3].vertexCount = 84;
     g[3].tex = conttree_b_lm2_t3x;
     g[3].texSize = conttree_b_lm2_t3x_size;
+    g[3].role = DS_MAT_CONTTREE_BOT;
     // conttree_t_lm2
     g[4].verts = ds_conttree_t_lm2;
     g[4].vertexCount = 84;
     g[4].tex = conttree_t_lm2_t3x;
     g[4].texSize = conttree_t_lm2_t3x_size;
+    g[4].role = DS_MAT_CONTTREE_TOP;
     // criffp_lm42
     g[5].verts = ds_criffp_lm42;
     g[5].vertexCount = 144;
     g[5].tex = criffp_lm42_t3x;
     g[5].texSize = criffp_lm42_t3x_size;
+    g[5].role = DS_MAT_SOLID_CLIFF;
     // file1Material
     g[6].verts = ds_file1Material;
     g[6].vertexCount = 1551;
     g[6].tex = file1Material_t3x;
     g[6].texSize = file1Material_t3x_size;
+    g[6].role = DS_MAT_SOLID_CLIFF;
     // file2Material
     g[7].verts = ds_file2Material;
     g[7].vertexCount = 612;
     g[7].tex = file2Material_t3x;
     g[7].texSize = file2Material_t3x_size;
+    g[7].role = DS_MAT_SOLID_CLIFF;
     // criff_lm44
     g[8].verts = ds_criff_lm44;
     g[8].vertexCount = 108;
     g[8].tex = criff_lm44_t3x;
     g[8].texSize = criff_lm44_t3x_size;
+    g[8].role = DS_MAT_SOLID_CLIFF;
     // newstep_lm21
     g[9].verts = ds_newstep_lm21;
     g[9].vertexCount = 222;
     g[9].tex = newstep_lm21_t3x;
     g[9].texSize = newstep_lm21_t3x_size;
+    g[9].role = DS_MAT_STAIRS;
     // seaside3_lm67
     g[10].verts = ds_seaside3_lm67;
     g[10].vertexCount = 1539;
     g[10].tex = seaside3_lm67_t3x;
     g[10].texSize = seaside3_lm67_t3x_size;
+    g[10].role = DS_MAT_BEACH;
     // sea_lm1
     g[11].verts = ds_sea_lm1;
     g[11].vertexCount = 96;
     g[11].tex = sea_lm1_t3x;
     g[11].texSize = sea_lm1_t3x_size;
+    g[11].role = DS_MAT_WATER_ANIM;
     // rhana
     g[12].verts = ds_rhana;
     g[12].vertexCount = 66;
     g[12].tex = rhana_t3x;
     g[12].texSize = rhana_t3x_size;
+    g[12].role = DS_MAT_FLOWER_ANIM;
     // fenter_lm6
     g[13].verts = ds_fenter_lm6;
     g[13].vertexCount = 12;
     g[13].tex = fenter_lm6_t3x;
     g[13].texSize = fenter_lm6_t3x_size;
+    g[13].role = DS_MAT_WARP_SHADOW;
     // nectgr_lm42
     g[14].verts = ds_nectgr_lm42;
     g[14].vertexCount = 18;
     g[14].tex = nectgr_lm42_t3x;
     g[14].texSize = nectgr_lm42_t3x_size;
+    g[14].role = DS_MAT_WILD_GRASS;
     // lgreenp_lm2
     g[15].verts = ds_lgreenp_lm2;
     g[15].vertexCount = 36;
     g[15].tex = lgreenp_lm2_t3x;
     g[15].texSize = lgreenp_lm2_t3x_size;
+    g[15].role = DS_MAT_GROUND_WALK;
     // wcliff_lm4
     g[16].verts = ds_wcliff_lm4;
     g[16].vertexCount = 18;
     g[16].tex = wcliff_lm4_t3x;
     g[16].texSize = wcliff_lm4_t3x_size;
+    g[16].role = DS_MAT_SOLID_CLIFF;
     // searock_lm15
     g[17].verts = ds_searock_lm15;
     g[17].vertexCount = 30;
     g[17].tex = searock_lm15_t3x;
     g[17].texSize = searock_lm15_t3x_size;
+    g[17].role = DS_MAT_SOLID_CLIFF;
 }

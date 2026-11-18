@@ -67,7 +67,7 @@ bool dsMapBuilderBuildVbo(void) {
     float minZ = 1e30f;
 
     g_dsMap.vertexCount = 0;
-    for (u32 g = 0; g < DS_MAP_GROUP_COUNT; ++g) {
+    for (u32 g = 0; g < g_dsMap.groupCount; ++g) {
         g_dsMap.first[g] = g_dsMap.vertexCount;
         for (u32 i = 0; i < g_dsMap.groups[g].vertexCount; ++i) {
             const float* v = &g_dsMap.groups[g].verts[i * 5];
@@ -99,7 +99,7 @@ bool dsMapBuilderBuildVbo(void) {
     g_dsMap.vbo = (TileVertex*)linearAlloc(totalVerts * sizeof(TileVertex));
     if (!g_dsMap.vbo) return false;
 
-    for (u32 g = 0; g < DS_MAP_GROUP_COUNT; ++g) {
+    for (u32 g = 0; g < g_dsMap.groupCount; ++g) {
         for (u32 i = 0; i < g_dsMap.groups[g].vertexCount; ++i) {
             const float* s = &g_dsMap.groups[g].verts[i * 5];
             TileVertex* d = &g_dsMap.vbo[g_dsMap.first[g] + i];
@@ -117,10 +117,15 @@ bool dsMapBuilderBuildVbo(void) {
     return true;
 }
 
-void dsMapBuilderBuildCollisionGrid(void) {
-    const int walkable_groups[] = { 0, 12, 13, 14, 15 };
-    const int cliff_groups[]    = { 5, 6, 7, 8, 16, 17 };
+static bool isWalkableGroundRole(DsMaterialRole role) {
+    return (role == DS_MAT_GROUND_WALK ||
+            role == DS_MAT_FLOWER_ANIM ||
+            role == DS_MAT_FLOWER_FLAT ||
+            role == DS_MAT_WARP_SHADOW ||
+            role == DS_MAT_WILD_GRASS);
+}
 
+void dsMapBuilderBuildCollisionGrid(void) {
     for (int gy = 0; gy < DS_GRID_SIZE; ++gy) {
         for (int gx = 0; gx < DS_GRID_SIZE; ++gx) {
             g_dsMap.gridType[gy][gx]       = DS_TILE_VOID;
@@ -131,14 +136,16 @@ void dsMapBuilderBuildCollisionGrid(void) {
         }
     }
 
-    // 1. Terreno calpestabile (erba, fiori, entrata foresta, erba alta, sentiero e spiaggia alta)
+    // 1. Terreno calpestabile (erba, sabbia, fiori, entrata foresta, erba alta, sentiero e spiaggia)
     for (int gy = 0; gy < DS_GRID_SIZE; ++gy) {
         for (int gx = 0; gx < DS_GRID_SIZE; ++gx) {
             float ox, oy, z_hit;
             dsMapGridToObjCenter((float)gx, (float)gy, &ox, &oy);
 
-            for (unsigned int w = 0; w < sizeof(walkable_groups) / sizeof(walkable_groups[0]); ++w) {
-                int g = walkable_groups[w];
+            for (u32 g = 0; g < g_dsMap.groupCount; ++g) {
+                DsMaterialRole role = g_dsMap.groups[g].role;
+                if (!isWalkableGroundRole(role)) continue;
+
                 for (u32 i = 0; i + 2 < g_dsMap.groups[g].vertexCount; i += 3) {
                     const float* v0 = &g_dsMap.groups[g].verts[(i + 0) * 5];
                     const float* v1 = &g_dsMap.groups[g].verts[(i + 1) * 5];
@@ -146,36 +153,39 @@ void dsMapBuilderBuildCollisionGrid(void) {
                     if (pointInTriXY(ox, oy, v0, v1, v2, &z_hit)) {
                         g_dsMap.gridType[gy][gx]   = DS_TILE_WALKABLE;
                         g_dsMap.gridHeight[gy][gx] = roundf(z_hit);
-                        if (g == 12) g_dsMap.gridHasFlowers[gy][gx] = true;
-                        if (g == 13) g_dsMap.gridHasShadow[gy][gx]  = true;
-                        if (g == 14) g_dsMap.gridHasGrass[gy][gx]   = true;
+                        if (role == DS_MAT_FLOWER_ANIM) g_dsMap.gridHasFlowers[gy][gx] = true;
+                        if (role == DS_MAT_WARP_SHADOW) g_dsMap.gridHasShadow[gy][gx]  = true;
+                        if (role == DS_MAT_WILD_GRASS)  g_dsMap.gridHasGrass[gy][gx]   = true;
                     }
                 }
             }
 
-            // Spiaggia calpestabile (seaside3_lm67 dove Z >= 0.95)
-            for (u32 i = 0; i + 2 < g_dsMap.groups[10].vertexCount; i += 3) {
-                const float* v0 = &g_dsMap.groups[10].verts[(i + 0) * 5];
-                const float* v1 = &g_dsMap.groups[10].verts[(i + 1) * 5];
-                const float* v2 = &g_dsMap.groups[10].verts[(i + 2) * 5];
-                if (pointInTriXY(ox, oy, v0, v1, v2, &z_hit) && z_hit >= 0.95f) {
-                    if (g_dsMap.gridType[gy][gx] == DS_TILE_VOID) {
-                        g_dsMap.gridType[gy][gx]   = DS_TILE_WALKABLE;
-                        g_dsMap.gridHeight[gy][gx] = 1.0f;
+            if (g_dsMap.beachGroup >= 0) {
+                const DsMapGroupData* bg = &g_dsMap.groups[g_dsMap.beachGroup];
+                for (u32 i = 0; i + 2 < bg->vertexCount; i += 3) {
+                    const float* v0 = &bg->verts[(i + 0) * 5];
+                    const float* v1 = &bg->verts[(i + 1) * 5];
+                    const float* v2 = &bg->verts[(i + 2) * 5];
+                    if (pointInTriXY(ox, oy, v0, v1, v2, &z_hit) && z_hit >= 0.95f) {
+                        if (g_dsMap.gridType[gy][gx] == DS_TILE_VOID) {
+                            g_dsMap.gridType[gy][gx]   = DS_TILE_WALKABLE;
+                            g_dsMap.gridHeight[gy][gx] = 1.0f;
+                        }
                     }
                 }
             }
         }
     }
 
-    // 2. Ostacoli rocce e scogliere
+    // 2. Ostacoli solidi (rocce, scogliere, recinzioni imped_lm53, bordi esterni)
     for (int gy = 0; gy < DS_GRID_SIZE; ++gy) {
         for (int gx = 0; gx < DS_GRID_SIZE; ++gx) {
             float ox, oy, z_hit;
             dsMapGridToObjCenter((float)gx, (float)gy, &ox, &oy);
 
-            for (unsigned int c = 0; c < sizeof(cliff_groups) / sizeof(cliff_groups[0]); ++c) {
-                int g = cliff_groups[c];
+            for (u32 g = 0; g < g_dsMap.groupCount; ++g) {
+                if (g_dsMap.groups[g].role != DS_MAT_SOLID_CLIFF) continue;
+
                 for (u32 i = 0; i + 2 < g_dsMap.groups[g].vertexCount; i += 3) {
                     const float* v0 = &g_dsMap.groups[g].verts[(i + 0) * 5];
                     const float* v1 = &g_dsMap.groups[g].verts[(i + 1) * 5];
@@ -188,130 +198,155 @@ void dsMapBuilderBuildCollisionGrid(void) {
         }
     }
 
-    // 3. Alberi singoli (tree01_lm2, gruppo 1: 24 vertici / 4 quad per albero)
+    // 3. Alberi singoli (DS_MAT_TREE_SINGLE: 24 vertici / 4 quad per albero)
     g_dsMap.treeCount = 0;
-    for (u32 i = 0; i + 23 < g_dsMap.groups[1].vertexCount; i += 24) {
-        const float* b0 = &g_dsMap.groups[1].verts[(i + 18) * 5];
-        const float* b1 = &g_dsMap.groups[1].verts[(i + 19) * 5];
-        const float* b2 = &g_dsMap.groups[1].verts[(i + 20) * 5];
+    if (g_dsMap.treeSingleGroup >= 0) {
+        int tg = g_dsMap.treeSingleGroup;
+        const DsMapGroupData* tgd = &g_dsMap.groups[tg];
 
-        float minX = fminf(b0[0], fminf(b1[0], b2[0]));
-        float maxX = fmaxf(b0[0], fmaxf(b1[0], b2[0]));
-        float minY = fminf(b0[1], fminf(b1[1], b2[1]));
+        for (u32 i = 0; i + 23 < tgd->vertexCount; i += 24) {
+            const float* b0 = &tgd->verts[(i + 18) * 5];
+            const float* b1 = &tgd->verts[(i + 19) * 5];
+            const float* b2 = &tgd->verts[(i + 20) * 5];
 
-        int tree_gx_min = DS_GRID_SIZE, tree_gx_max = -1;
-        int tree_gy_north = DS_GRID_SIZE, tree_gy_south = -1;
+            float minX = fminf(b0[0], fminf(b1[0], b2[0]));
+            float maxX = fmaxf(b0[0], fmaxf(b1[0], b2[0]));
+            float minY = fminf(b0[1], fminf(b1[1], b2[1]));
 
-        for (float x = minX + 0.5f; x < maxX; x += 1.0f) {
-            int gx, gy;
-            if (dsMapObjToGrid(x, minY + 0.4f, &gx, &gy)) {
-                g_dsMap.gridType[gy][gx] = DS_TILE_SOLID;
-                if (gx < tree_gx_min) tree_gx_min = gx;
-                if (gx > tree_gx_max) tree_gx_max = gx;
-                tree_gy_south = gy;
+            int tree_gx_min = DS_GRID_SIZE, tree_gx_max = -1;
+            int tree_gy_north = DS_GRID_SIZE, tree_gy_south = -1;
+
+            for (float x = minX + 0.5f; x < maxX; x += 1.0f) {
+                int gx, gy;
+                if (dsMapObjToGrid(x, minY + 0.4f, &gx, &gy)) {
+                    g_dsMap.gridType[gy][gx] = DS_TILE_SOLID;
+                    if (gx < tree_gx_min) tree_gx_min = gx;
+                    if (gx > tree_gx_max) tree_gx_max = gx;
+                    tree_gy_south = gy;
+                }
+                if (dsMapObjToGrid(x, minY + 1.4f, &gx, &gy)) {
+                    g_dsMap.gridType[gy][gx] = DS_TILE_SOLID;
+                    if (gx < tree_gx_min) tree_gx_min = gx;
+                    if (gx > tree_gx_max) tree_gx_max = gx;
+                    tree_gy_north = gy;
+                }
             }
-            if (dsMapObjToGrid(x, minY + 1.4f, &gx, &gy)) {
-                g_dsMap.gridType[gy][gx] = DS_TILE_SOLID;
-                if (gx < tree_gx_min) tree_gx_min = gx;
-                if (gx > tree_gx_max) tree_gx_max = gx;
-                tree_gy_north = gy;
-            }
-        }
 
-        if (g_dsMap.treeCount < MAX_SINGLE_TREES && tree_gx_min <= tree_gx_max && tree_gy_north <= tree_gy_south) {
-            g_dsMap.trees[g_dsMap.treeCount++] = (DsSingleTree){
-                .firstVertex  = g_dsMap.first[1] + i,
-                .secondVertex = 0,
-                .gx_min       = tree_gx_min,
-                .gx_max       = tree_gx_max,
-                .gy_north     = tree_gy_north,
-                .gy_south     = tree_gy_south
-            };
+            if (g_dsMap.treeCount < MAX_SINGLE_TREES && tree_gx_min <= tree_gx_max && tree_gy_north <= tree_gy_south) {
+                g_dsMap.trees[g_dsMap.treeCount++] = (DsSingleTree){
+                    .firstVertex  = g_dsMap.first[tg] + i,
+                    .secondVertex = 0,
+                    .gx_min       = tree_gx_min,
+                    .gx_max       = tree_gx_max,
+                    .gy_north     = tree_gy_north,
+                    .gy_south     = tree_gy_south
+                };
+            }
         }
     }
 
-    // 4. Alberi continui (conttree_b_lm2 gruppo 3 + conttree_t_lm2 gruppo 4):
-    //    Suddivide ogni striscia orizzontale in singoli alberi 2x2 nel VBO
+    // 4. Alberi continui (DS_MAT_CONTTREE_BOT + DS_MAT_CONTTREE_TOP)
     g_dsMap.contTreeCount = 0;
-    for (u32 s = 0; s + 11 < g_dsMap.groups[3].vertexCount; s += 12) {
-        float minX = 1e30f, maxX = -1e30f;
-        float minY = 1e30f;
-        for (int v = 0; v < 12; ++v) {
-            const float* pt = &g_dsMap.groups[3].verts[(s + v) * 5];
-            if (pt[0] < minX) minX = pt[0];
-            if (pt[0] > maxX) maxX = pt[0];
-            if (pt[1] < minY) minY = pt[1];
+    if (g_dsMap.contTreeBotGroup >= 0) {
+        int bg = g_dsMap.contTreeBotGroup;
+        int tg = g_dsMap.contTreeTopGroup;
+        const DsMapGroupData* cbot = &g_dsMap.groups[bg];
+        const DsMapGroupData* ctop = (tg >= 0) ? &g_dsMap.groups[tg] : NULL;
+
+        for (u32 s = 0; s + 11 < cbot->vertexCount; s += 12) {
+            float minX = 1e30f, maxX = -1e30f;
+            float minY = 1e30f;
+            for (int v = 0; v < 12; ++v) {
+                const float* pt = &cbot->verts[(s + v) * 5];
+                if (pt[0] < minX) minX = pt[0];
+                if (pt[0] > maxX) maxX = pt[0];
+                if (pt[1] < minY) minY = pt[1];
+            }
+
+            for (float x = minX + 0.5f; x < maxX; x += 1.0f) {
+                int gx, gy;
+                if (dsMapObjToGrid(x, minY + 0.4f, &gx, &gy)) {
+                    g_dsMap.gridType[gy][gx] = DS_TILE_SOLID;
+                }
+                if (dsMapObjToGrid(x, minY + 1.4f, &gx, &gy)) {
+                    g_dsMap.gridType[gy][gx] = DS_TILE_SOLID;
+                }
+            }
+
+            int numSlices = (int)roundf((maxX - minX) / 2.0f);
+            if (numSlices < 1) numSlices = 1;
+
+            for (int k = 0; k < numSlices; ++k) {
+                if (g_dsMap.contTreeCount >= MAX_CONT_TREES || !g_dsMap.vbo) break;
+
+                float sliceMinX = minX + 2.0f * (float)k;
+                int gx0 = 0, gx1 = 0, gy_s = 0, gy_n = 0;
+                bool ok0 = dsMapObjToGrid(sliceMinX + 0.5f, minY + 0.4f, &gx0, &gy_s);
+                bool ok1 = dsMapObjToGrid(sliceMinX + 1.5f, minY + 1.4f, &gx1, &gy_n);
+                if (!ok0 || !ok1) continue;
+
+                u32 baseVertB = g_dsMap.contTreeFirst + g_dsMap.contTreeCount * 24;
+                u32 baseVertT = baseVertB + 12;
+
+                buildContTreeSliceQuad(&g_dsMap.vbo[baseVertB + 0], &cbot->verts[(s + 0) * 5], minX, maxX, k, numSlices);
+                buildContTreeSliceQuad(&g_dsMap.vbo[baseVertB + 6], &cbot->verts[(s + 6) * 5], minX, maxX, k, numSlices);
+
+                if (ctop && s + 11 < ctop->vertexCount) {
+                    buildContTreeSliceQuad(&g_dsMap.vbo[baseVertT + 0], &ctop->verts[(s + 0) * 5], minX, maxX, k, numSlices);
+                    buildContTreeSliceQuad(&g_dsMap.vbo[baseVertT + 6], &ctop->verts[(s + 6) * 5], minX, maxX, k, numSlices);
+                }
+
+                g_dsMap.contTrees[g_dsMap.contTreeCount++] = (DsSingleTree){
+                    .firstVertex  = baseVertB,
+                    .secondVertex = baseVertT,
+                    .gx_min       = (gx0 < gx1) ? gx0 : gx1,
+                    .gx_max       = (gx0 > gx1) ? gx0 : gx1,
+                    .gy_north     = (gy_n < gy_s) ? gy_n : gy_s,
+                    .gy_south     = (gy_n > gy_s) ? gy_n : gy_s
+                };
+            }
         }
-
-        for (float x = minX + 0.5f; x < maxX; x += 1.0f) {
-            int gx, gy;
-            if (dsMapObjToGrid(x, minY + 0.4f, &gx, &gy)) {
-                g_dsMap.gridType[gy][gx] = DS_TILE_SOLID;
-            }
-            if (dsMapObjToGrid(x, minY + 1.4f, &gx, &gy)) {
-                g_dsMap.gridType[gy][gx] = DS_TILE_SOLID;
-            }
-        }
-
-        int numSlices = (int)roundf((maxX - minX) / 2.0f);
-        if (numSlices < 1) numSlices = 1;
-
-        for (int k = 0; k < numSlices; ++k) {
-            if (g_dsMap.contTreeCount >= MAX_CONT_TREES || !g_dsMap.vbo) break;
-
-            float sliceMinX = minX + 2.0f * (float)k;
-            int gx0 = 0, gx1 = 0, gy_s = 0, gy_n = 0;
-            bool ok0 = dsMapObjToGrid(sliceMinX + 0.5f, minY + 0.4f, &gx0, &gy_s);
-            bool ok1 = dsMapObjToGrid(sliceMinX + 1.5f, minY + 1.4f, &gx1, &gy_n);
-            if (!ok0 || !ok1) continue;
-
-            u32 baseVertB = g_dsMap.contTreeFirst + g_dsMap.contTreeCount * 24;
-            u32 baseVertT = baseVertB + 12;
-
-            buildContTreeSliceQuad(&g_dsMap.vbo[baseVertB + 0], &g_dsMap.groups[3].verts[(s + 0) * 5], minX, maxX, k, numSlices);
-            buildContTreeSliceQuad(&g_dsMap.vbo[baseVertB + 6], &g_dsMap.groups[3].verts[(s + 6) * 5], minX, maxX, k, numSlices);
-
-            if (s + 11 < g_dsMap.groups[4].vertexCount) {
-                buildContTreeSliceQuad(&g_dsMap.vbo[baseVertT + 0], &g_dsMap.groups[4].verts[(s + 0) * 5], minX, maxX, k, numSlices);
-                buildContTreeSliceQuad(&g_dsMap.vbo[baseVertT + 6], &g_dsMap.groups[4].verts[(s + 6) * 5], minX, maxX, k, numSlices);
-            }
-
-            g_dsMap.contTrees[g_dsMap.contTreeCount++] = (DsSingleTree){
-                .firstVertex  = baseVertB,
-                .secondVertex = baseVertT,
-                .gx_min       = (gx0 < gx1) ? gx0 : gx1,
-                .gx_max       = (gx0 > gx1) ? gx0 : gx1,
-                .gy_north     = (gy_n < gy_s) ? gy_n : gy_s,
-                .gy_south     = (gy_n > gy_s) ? gy_n : gy_s
-            };
+        if (g_dsMap.vbo && g_dsMap.contTreeCount > 0) {
+            GSPGPU_FlushDataCache(&g_dsMap.vbo[g_dsMap.contTreeFirst], g_dsMap.contTreeCount * 24 * sizeof(TileVertex));
         }
     }
-    if (g_dsMap.vbo && g_dsMap.contTreeCount > 0) {
-        GSPGPU_FlushDataCache(&g_dsMap.vbo[g_dsMap.contTreeFirst], g_dsMap.contTreeCount * 24 * sizeof(TileVertex));
+
+    // Passaggi evento foresta per mappa
+    if (g_dsMap.mapId == DS_MAP_ROUTE) {
+        g_dsMap.gridType[9][21]  = DS_TILE_SOLID;
+        g_dsMap.gridType[9][22]  = DS_TILE_SOLID;
+        g_dsMap.gridType[10][21] = DS_TILE_SOLID;
+        g_dsMap.gridType[10][22] = DS_TILE_SOLID;
+        g_dsMap.gridType[11][21] = DS_TILE_WALKABLE;
+        g_dsMap.gridType[11][22] = DS_TILE_WALKABLE;
+        g_dsMap.gridType[12][21] = DS_TILE_WALKABLE;
+        g_dsMap.gridType[12][22] = DS_TILE_WALKABLE;
+    } else if (g_dsMap.mapId == DS_MAP_CLEARING) {
+        g_dsMap.gridType[26][16] = DS_TILE_WALKABLE;
+        g_dsMap.gridType[26][17] = DS_TILE_WALKABLE;
+        g_dsMap.gridType[27][16] = DS_TILE_WALKABLE;
+        g_dsMap.gridType[27][17] = DS_TILE_WALKABLE;
+        g_dsMap.gridType[28][16] = DS_TILE_SOLID;
+        g_dsMap.gridType[28][17] = DS_TILE_SOLID;
+        g_dsMap.gridType[29][16] = DS_TILE_SOLID;
+        g_dsMap.gridType[29][17] = DS_TILE_SOLID;
     }
 
-    // Corridoio entrata foresta (gx = 21..22): albero solido a gy = 9..10, ombra calpestabile a gy = 11..12
-    g_dsMap.gridType[9][21]  = DS_TILE_SOLID;
-    g_dsMap.gridType[9][22]  = DS_TILE_SOLID;
-    g_dsMap.gridType[10][21] = DS_TILE_SOLID;
-    g_dsMap.gridType[10][22] = DS_TILE_SOLID;
-    g_dsMap.gridType[11][21] = DS_TILE_WALKABLE;
-    g_dsMap.gridType[11][22] = DS_TILE_WALKABLE;
-    g_dsMap.gridType[12][21] = DS_TILE_WALKABLE;
-    g_dsMap.gridType[12][22] = DS_TILE_WALKABLE;
-
-    // 5. Scale (newstep_lm21, gruppo 9): sempre calpestabili e consentono il cambio di quota
-    for (int gy = 0; gy < DS_GRID_SIZE; ++gy) {
-        for (int gx = 0; gx < DS_GRID_SIZE; ++gx) {
-            float ox, oy, z_hit;
-            dsMapGridToObjCenter((float)gx, (float)gy, &ox, &oy);
-            for (u32 i = 0; i + 2 < g_dsMap.groups[9].vertexCount; i += 3) {
-                const float* v0 = &g_dsMap.groups[9].verts[(i + 0) * 5];
-                const float* v1 = &g_dsMap.groups[9].verts[(i + 1) * 5];
-                const float* v2 = &g_dsMap.groups[9].verts[(i + 2) * 5];
-                if (pointInTriXY(ox, oy, v0, v1, v2, &z_hit)) {
-                    g_dsMap.gridType[gy][gx]   = DS_TILE_STAIRS;
-                    g_dsMap.gridHeight[gy][gx] = z_hit;
+    // 5. Scale (DS_MAT_STAIRS)
+    if (g_dsMap.stairsGroup >= 0) {
+        const DsMapGroupData* sg = &g_dsMap.groups[g_dsMap.stairsGroup];
+        for (int gy = 0; gy < DS_GRID_SIZE; ++gy) {
+            for (int gx = 0; gx < DS_GRID_SIZE; ++gx) {
+                float ox, oy, z_hit;
+                dsMapGridToObjCenter((float)gx, (float)gy, &ox, &oy);
+                for (u32 i = 0; i + 2 < sg->vertexCount; i += 3) {
+                    const float* v0 = &sg->verts[(i + 0) * 5];
+                    const float* v1 = &sg->verts[(i + 1) * 5];
+                    const float* v2 = &sg->verts[(i + 2) * 5];
+                    if (pointInTriXY(ox, oy, v0, v1, v2, &z_hit)) {
+                        g_dsMap.gridType[gy][gx]   = DS_TILE_STAIRS;
+                        g_dsMap.gridHeight[gy][gx] = z_hit;
+                    }
                 }
             }
         }
@@ -356,22 +391,21 @@ float dsMapGetWorldPos(float grid_x, float grid_y, float* out_x, float* out_y, f
     if (gx < 0) gx = 0; else if (gx >= DS_GRID_SIZE) gx = DS_GRID_SIZE - 1;
     if (gy < 0) gy = 0; else if (gy >= DS_GRID_SIZE) gy = DS_GRID_SIZE - 1;
 
-    if ((gx == 21 || gx == 22) && gy == 11) {
-        oy = 4.85f;
-    }
-
     float obj_z = g_dsMap.gridHeight[gy][gx];
 
     float stair_z;
     bool on_stair = false;
-    for (u32 i = 0; i + 2 < g_dsMap.groups[9].vertexCount; i += 3) {
-        const float* v0 = &g_dsMap.groups[9].verts[(i + 0) * 5];
-        const float* v1 = &g_dsMap.groups[9].verts[(i + 1) * 5];
-        const float* v2 = &g_dsMap.groups[9].verts[(i + 2) * 5];
-        if (pointInTriXY(ox, oy, v0, v1, v2, &stair_z)) {
-            obj_z = stair_z + 0.35f;
-            on_stair = true;
-            break;
+    if (g_dsMap.stairsGroup >= 0) {
+        const DsMapGroupData* sg = &g_dsMap.groups[g_dsMap.stairsGroup];
+        for (u32 i = 0; i + 2 < sg->vertexCount; i += 3) {
+            const float* v0 = &sg->verts[(i + 0) * 5];
+            const float* v1 = &sg->verts[(i + 1) * 5];
+            const float* v2 = &sg->verts[(i + 2) * 5];
+            if (pointInTriXY(ox, oy, v0, v1, v2, &stair_z)) {
+                obj_z = stair_z + 0.35f;
+                on_stair = true;
+                break;
+            }
         }
     }
     if (!on_stair && g_dsMap.gridType[gy][gx] == DS_TILE_STAIRS) {

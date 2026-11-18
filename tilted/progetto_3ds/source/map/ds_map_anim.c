@@ -52,9 +52,9 @@ void dsMapAnimInit(void) {
     g_dsMap.waterFirst       = 0;
     g_dsMap.waterAnimTime    = 0.0f;
 
-    if (DS_MAP_WATER_GROUP < DS_MAP_GROUP_COUNT && g_dsMap.vbo) {
-        g_dsMap.waterVertexCount = g_dsMap.groups[DS_MAP_WATER_GROUP].vertexCount;
-        g_dsMap.waterFirst       = g_dsMap.first[DS_MAP_WATER_GROUP];
+    if (g_dsMap.waterGroup >= 0 && g_dsMap.vbo) {
+        g_dsMap.waterVertexCount = g_dsMap.groups[g_dsMap.waterGroup].vertexCount;
+        g_dsMap.waterFirst       = g_dsMap.first[g_dsMap.waterGroup];
         if (g_dsMap.waterVertexCount > 0) {
             g_dsMap.waterBase = (WaterBaseVertex*)malloc(g_dsMap.waterVertexCount * sizeof(WaterBaseVertex));
             if (g_dsMap.waterBase) {

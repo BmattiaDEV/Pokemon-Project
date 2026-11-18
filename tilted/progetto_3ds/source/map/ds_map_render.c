@@ -37,16 +37,16 @@ static void buildTileOverlayQuad(TileVertex* fv, int gx, int gy, float y_north_o
 static void drawMapGroupsOpaquePass(int flower_frame, float pgx, float pgy, bool* out_hasFadedTrees) {
     bool hasFaded = false;
 
-    for (u32 g = 0; g < DS_MAP_GROUP_COUNT; ++g) {
+    for (u32 g = 0; g < g_dsMap.groupCount; ++g) {
         if (g_dsMap.groups[g].vertexCount == 0) continue;
 
-        if (g == 12 && g_dsMap.flowerAnimReady) {
+        if ((int)g == g_dsMap.flowerAnimGroup && g_dsMap.flowerAnimReady) {
             C3D_TexBind(0, &g_dsMap.rhanaTex[flower_frame]);
         } else {
             C3D_TexBind(0, &g_dsMap.tex[g]);
         }
 
-        if (g == 1 && g_dsMap.treeCount > 0) {
+        if ((int)g == g_dsMap.treeSingleGroup && g_dsMap.treeCount > 0) {
             for (u32 t = 0; t < g_dsMap.treeCount; ++t) {
                 if (isPlayerBehindSingleTree(&g_dsMap.trees[t], pgx, pgy)) {
                     hasFaded = true;
@@ -54,7 +54,7 @@ static void drawMapGroupsOpaquePass(int flower_frame, float pgx, float pgy, bool
                 }
                 C3D_DrawArrays(GPU_TRIANGLES, (int)g_dsMap.trees[t].firstVertex, 24);
             }
-        } else if (g == 3 && g_dsMap.contTreeCount > 0) {
+        } else if ((int)g == g_dsMap.contTreeBotGroup && g_dsMap.contTreeCount > 0) {
             for (u32 t = 0; t < g_dsMap.contTreeCount; ++t) {
                 if (isPlayerBehindSingleTree(&g_dsMap.contTrees[t], pgx, pgy)) {
                     hasFaded = true;
@@ -62,7 +62,7 @@ static void drawMapGroupsOpaquePass(int flower_frame, float pgx, float pgy, bool
                 }
                 C3D_DrawArrays(GPU_TRIANGLES, (int)g_dsMap.contTrees[t].firstVertex, 12);
             }
-        } else if (g == 4 && g_dsMap.contTreeCount > 0) {
+        } else if ((int)g == g_dsMap.contTreeTopGroup && g_dsMap.contTreeCount > 0) {
             for (u32 t = 0; t < g_dsMap.contTreeCount; ++t) {
                 if (isPlayerBehindSingleTree(&g_dsMap.contTrees[t], pgx, pgy)) {
                     hasFaded = true;
@@ -149,21 +149,27 @@ static void drawFadedTreesPass(float pgx, float pgy) {
 
     C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
 
-    // 1. Alberi singoli (gruppo 1) davanti al giocatore
-    C3D_TexBind(0, &g_dsMap.tex[1]);
-    for (u32 t = 0; t < g_dsMap.treeCount; ++t) {
-        if (isPlayerBehindSingleTree(&g_dsMap.trees[t], pgx, pgy)) {
-            C3D_DrawArrays(GPU_TRIANGLES, (int)g_dsMap.trees[t].firstVertex, 24);
+    // 1. Alberi singoli (treeSingleGroup) davanti al giocatore
+    if (g_dsMap.treeSingleGroup >= 0) {
+        C3D_TexBind(0, &g_dsMap.tex[g_dsMap.treeSingleGroup]);
+        for (u32 t = 0; t < g_dsMap.treeCount; ++t) {
+            if (isPlayerBehindSingleTree(&g_dsMap.trees[t], pgx, pgy)) {
+                C3D_DrawArrays(GPU_TRIANGLES, (int)g_dsMap.trees[t].firstVertex, 24);
+            }
         }
     }
 
-    // 2. Singole sezioni 2x2 di alberi continui (gruppi 4 e 3) davanti al giocatore
-    for (u32 t = 0; t < g_dsMap.contTreeCount; ++t) {
-        if (isPlayerBehindSingleTree(&g_dsMap.contTrees[t], pgx, pgy)) {
-            C3D_TexBind(0, &g_dsMap.tex[4]);
-            C3D_DrawArrays(GPU_TRIANGLES, (int)g_dsMap.contTrees[t].secondVertex, 12);
-            C3D_TexBind(0, &g_dsMap.tex[3]);
-            C3D_DrawArrays(GPU_TRIANGLES, (int)g_dsMap.contTrees[t].firstVertex, 12);
+    // 2. Singole sezioni 2x2 di alberi continui davanti al giocatore
+    if (g_dsMap.contTreeBotGroup >= 0) {
+        for (u32 t = 0; t < g_dsMap.contTreeCount; ++t) {
+            if (isPlayerBehindSingleTree(&g_dsMap.contTrees[t], pgx, pgy)) {
+                if (g_dsMap.contTreeTopGroup >= 0) {
+                    C3D_TexBind(0, &g_dsMap.tex[g_dsMap.contTreeTopGroup]);
+                    C3D_DrawArrays(GPU_TRIANGLES, (int)g_dsMap.contTrees[t].secondVertex, 12);
+                }
+                C3D_TexBind(0, &g_dsMap.tex[g_dsMap.contTreeBotGroup]);
+                C3D_DrawArrays(GPU_TRIANGLES, (int)g_dsMap.contTrees[t].firstVertex, 12);
+            }
         }
     }
 

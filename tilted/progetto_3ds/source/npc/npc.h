@@ -30,8 +30,8 @@ typedef struct {
     int             wait_frames;
 } Npc;
 
-// Carica la texture degli NPC, inizializza la tabella degli NPC e il VBO lineare
-void npcInit(void);
+// Carica la texture degli NPC, inizializza la tabella degli NPC per map_id e il VBO lineare
+void npcInit(int map_id);
 
 // Libera texture e VBO degli NPC
 void npcExit(void);

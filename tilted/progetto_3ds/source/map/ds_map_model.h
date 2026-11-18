@@ -2,7 +2,10 @@
 
 #include "ds_map.h"
 
-#define DS_MAP_GROUP_COUNT 18
+// Mappa 0: percorso costiero ed entrata della foresta
+extern const u32 g_dsMap0GroupCount;
+void dsMap0FillGroups(DsMapGroupData g[DS_MAX_MAP_GROUPS]);
 
-// Popola i descrittori dei 18 gruppi materiali del modello 3D della mappa DS
-void dsMapFillGroups(DsMapGroupData g[DS_MAP_GROUP_COUNT]);
+// Mappa 1: radura con sentieri di sabbia e aiuole recintate
+extern const u32 g_dsMap1GroupCount;
+void dsMap1FillGroups(DsMapGroupData g[DS_MAX_MAP_GROUPS]);

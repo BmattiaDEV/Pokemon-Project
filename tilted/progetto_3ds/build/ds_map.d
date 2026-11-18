@@ -112,6 +112,8 @@ ds_map.o: \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/player/player.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/npc/npc.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/dialogue.h \
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/transition.h \
+ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/encounter.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/player_t3x.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/flower_overlay_t3x.h \
  C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/grass_overlay_t3x.h
@@ -227,6 +229,8 @@ C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/d
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/player/player.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/npc/npc.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/dialogue.h:
+C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/transition.h:
+C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/encounter.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/player_t3x.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/flower_overlay_t3x.h:
 C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/grass_overlay_t3x.h:

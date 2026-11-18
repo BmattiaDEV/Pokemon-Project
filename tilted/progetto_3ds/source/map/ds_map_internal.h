@@ -17,8 +17,7 @@
 // Limiti buffer alberi e animazioni
 #define FLOWER_ANIM_FRAMES    5
 #define MAX_SINGLE_TREES     64
-#define MAX_CONT_TREES       32
-#define DS_MAP_WATER_GROUP   11
+#define MAX_CONT_TREES      128
 
 // Tipi di cella sulla griglia logica 32x32
 typedef enum {
@@ -35,10 +34,10 @@ typedef struct {
     float v;
 } WaterBaseVertex;
 
-// Descrittore di un singolo albero 2x2 (standalone in gruppo 1 o fettina di albero continuo in gruppi 3/4)
+// Descrittore di un singolo albero 2x2 (standalone o fettina di albero continuo)
 typedef struct {
     u32 firstVertex;
-    u32 secondVertex; // Usato per conttree_t_lm2 (chioma superiore in gruppo 4)
+    u32 secondVertex; // Usato per conttree_t_lm2 (chioma superiore)
     int gx_min;
     int gx_max;
     int gy_north;
@@ -48,17 +47,28 @@ typedef struct {
 // Stato runtime condiviso della mappa attualmente caricata
 typedef struct {
     bool            ready;
+    DsMapId         mapId;
     TileVertex*     vbo;
     u32             vertexCount;
     u32             playerFirst;
     u32             flowerFirst;
     u32             grassFirst;
     u32             contTreeFirst;
-    u32             first[DS_MAP_GROUP_COUNT];
-    DsMapGroupData  groups[DS_MAP_GROUP_COUNT];
+    u32             groupCount;
+    u32             first[DS_MAX_MAP_GROUPS];
+    DsMapGroupData  groups[DS_MAX_MAP_GROUPS];
+
+    // Indici risolti dinamicamente in base al ruolo (o -1 se assente nella mappa corrente)
+    int             treeSingleGroup;
+    int             contTreeBotGroup;
+    int             contTreeTopGroup;
+    int             stairsGroup;
+    int             beachGroup;
+    int             waterGroup;
+    int             flowerAnimGroup;
 
     // Texture materiali mappa e overlay
-    C3D_Tex         tex[DS_MAP_GROUP_COUNT];
+    C3D_Tex         tex[DS_MAX_MAP_GROUPS];
     C3D_Tex         playerTex;
     bool            playerTexReady;
     C3D_Tex         flowerTex;

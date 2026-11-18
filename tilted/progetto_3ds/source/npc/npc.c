@@ -16,6 +16,7 @@
 #define NPC_MOVE_SPEED  (1.0f / 24.0f)
 
 typedef struct {
+    int             map_id;
     int             start_x;
     int             start_y;
     PlayerDirection dir;
@@ -25,10 +26,11 @@ typedef struct {
     int             text_id;       // Indice del dialogo in npc_texts.c
 } NpcSpawnDef;
 
-// Tabella iniziale degli NPC sulla mappa (wander_radius = 1 limita il movimento a un 3x3 attorno allo spawn)
+// Tabella iniziale degli NPC per mappa (wander_radius = 1 limita il movimento a un 3x3 attorno allo spawn)
 static const NpcSpawnDef s_initialNpcs[] = {
-    { 16, 14, DIR_RIGHT, 0, NPC_MOVE_WANDER, 1, 0 },
-    { 20, 15, DIR_DOWN,  1, NPC_MOVE_WANDER, 1, 1 },
+    { 0, 16, 14, DIR_RIGHT, 0, NPC_MOVE_WANDER, 1, 0 },
+    { 0, 20, 15, DIR_DOWN,  1, NPC_MOVE_WANDER, 1, 1 },
+    { 1, 19, 13, DIR_LEFT,  2, NPC_MOVE_WANDER, 1, 2 },
 };
 
 static Npc         s_npcs[MAX_NPCS];
@@ -115,9 +117,11 @@ static void buildNpcVbo(float cam_x, float cam_y, float cam_z, float cam_dist) {
     GSPGPU_FlushDataCache(s_npcVbo, (u32)(s_npcCount * 6) * sizeof(TileVertex));
 }
 
-void npcInit(void) {
+void npcInit(int map_id) {
     s_npcCount = 0;
-    s_npcTexReady = texLoadFromMem(npcs_t3x, npcs_t3x_size, &s_npcTex, GPU_NEAREST, GPU_CLAMP_TO_EDGE);
+    if (!s_npcTexReady) {
+        s_npcTexReady = texLoadFromMem(npcs_t3x, npcs_t3x_size, &s_npcTex, GPU_NEAREST, GPU_CLAMP_TO_EDGE);
+    }
 
     if (!s_npcVbo) {
         s_npcVbo = (TileVertex*)linearAlloc(MAX_NPCS * 6 * sizeof(TileVertex));
@@ -125,6 +129,7 @@ void npcInit(void) {
 
     int count = (int)(sizeof(s_initialNpcs) / sizeof(s_initialNpcs[0]));
     for (int i = 0; i < count; ++i) {
+        if (s_initialNpcs[i].map_id != map_id) continue;
         npcAdd(
             s_initialNpcs[i].start_x,
             s_initialNpcs[i].start_y,
