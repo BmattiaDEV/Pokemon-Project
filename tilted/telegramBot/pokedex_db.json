@@ -1,0 +1,36 @@
+{
+    "pokemon": [{
+        "descrizione": "Un rapido Pokémon uccello che pattuglia le foreste dall'alto con vista acutissima.",
+        "statistiche": {
+            "attacco": 60,
+            "ps": 45,
+            "velocita": 75,
+            "difesa_speciale": 40,
+            "attacco_speciale": 35,
+            "difesa": 40
+        },
+        "gruppo_uova": "Volante",
+        "sprite": {
+            "width": 1024,
+            "files": [
+                "uccello_back.png (1024x2048 px - Back Battle Sheet)",
+                "uccello_front.png (1024x2048 px - Front Battle Sheet)",
+                "uccello_sprite.png (256x256 px - Base/Icon Sprite)"
+            ],
+            "back_file": "uccello_back.png",
+            "folder_name": "uccello",
+            "front_file": "uccello_front.png",
+            "icon_file": "uccello_sprite.png",
+            "zip_file": "uccello.zip",
+            "height": 2048
+        },
+        "tipo1": "Normale",
+        "curva_crescita": "Media-Lenta",
+        "nome": "Sparveloce",
+        "tipo2": "Volante",
+        "id": 1
+    }],
+    "progetto": "Pokemon Dusk & Dawn 3DS",
+    "versione_schema": 2,
+    "totale_pokemon": 1
+}
