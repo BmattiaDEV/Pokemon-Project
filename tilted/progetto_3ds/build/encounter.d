@@ -1,7 +1,7 @@
 encounter.o: \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/encounter.c \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/encounter.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/encounter.c \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/encounter.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/common.h \
  C:/devkitPro/libctru/include/3ds.h \
  C:/devkitPro/libctru/include/3ds/types.h \
  C:/devkitPro/libctru/include/3ds/result.h \
@@ -107,9 +107,9 @@ encounter.o: \
  C:/devkitPro/libctru/include/c3d/framebuffer.h \
  C:/devkitPro/libctru/include/c3d/renderqueue.h \
  C:/devkitPro/libctru/include/tex3ds.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map.h
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/encounter.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h:
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/map/ds_map.h
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/encounter.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/common.h:
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
@@ -215,4 +215,4 @@ C:/devkitPro/libctru/include/c3d/fog.h:
 C:/devkitPro/libctru/include/c3d/framebuffer.h:
 C:/devkitPro/libctru/include/c3d/renderqueue.h:
 C:/devkitPro/libctru/include/tex3ds.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/map/ds_map.h:

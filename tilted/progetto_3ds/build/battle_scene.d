@@ -1,7 +1,7 @@
 battle_scene.o: \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/battle_scene.c \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/battle_scene.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/render/battle_scene.c \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/render/battle_scene.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/common.h \
  C:/devkitPro/libctru/include/3ds.h \
  C:/devkitPro/libctru/include/3ds/types.h \
  C:/devkitPro/libctru/include/3ds/result.h \
@@ -107,13 +107,15 @@ battle_scene.o: \
  C:/devkitPro/libctru/include/c3d/framebuffer.h \
  C:/devkitPro/libctru/include/c3d/renderqueue.h \
  C:/devkitPro/libctru/include/tex3ds.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_bg_t3x.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_base_enemy_t3x.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_base_player_t3x.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/uccello_front_t3x.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/uccello_back_t3x.h
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/battle_scene.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h:
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/battle_bg_t3x.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/battle_base_enemy_t3x.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/battle_base_player_t3x.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/uccello_front_t3x.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/uccello_back_t3x.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/auremora_front_0_t3x.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/auremora_front_1_t3x.h
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/render/battle_scene.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/common.h:
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
@@ -219,8 +221,10 @@ C:/devkitPro/libctru/include/c3d/fog.h:
 C:/devkitPro/libctru/include/c3d/framebuffer.h:
 C:/devkitPro/libctru/include/c3d/renderqueue.h:
 C:/devkitPro/libctru/include/tex3ds.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_bg_t3x.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_base_enemy_t3x.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/battle_base_player_t3x.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/uccello_front_t3x.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/uccello_back_t3x.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/battle_bg_t3x.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/battle_base_enemy_t3x.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/battle_base_player_t3x.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/uccello_front_t3x.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/uccello_back_t3x.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/auremora_front_0_t3x.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/auremora_front_1_t3x.h:

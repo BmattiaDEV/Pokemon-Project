@@ -18,24 +18,28 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 /**
- * FASE 4: Ricezione, estrazione e validazione tecnica dell'intera cartella Sprite (file .ZIP o .PNG)
+ * FASE 4: Ricezione, estrazione e validazione tecnica dell'intera cartella
+ * Sprite (file .ZIP o .PNG)
  * per l'engine Nintendo 3DS.
  *
  * Supporta:
- * 1. Invio di un intero archivio .ZIP contenente la cartella degli sprite del Pokémon
- *    (es. uccello_front.png, uccello_back.png, uccello_sprite.png)
- * 2. Creazione automatica del file .ZIP a partire da una cartella di sprite (per mostrarlo/inviarlo tutto su Telegram)
- * 3. Verifica tecnica di ogni PNG (formato PNG, dimensioni potenze di 2 da 32 a 2048 px, canale Alpha RGBA).
+ * 1. Invio di un intero archivio .ZIP contenente la cartella degli sprite del
+ * Pokémon
+ * (es. uccello_front.png, uccello_back.png, uccello_sprite.png)
+ * 2. Creazione automatica del file .ZIP a partire da una cartella di sprite
+ * (per mostrarlo/inviarlo tutto su Telegram)
+ * 3. Verifica tecnica di ogni PNG (formato PNG, dimensioni potenze di 2 da 32 a
+ * 2048 px, canale Alpha RGBA).
  */
 public class SpriteValidator {
 
     // Magic bytes dell'header PNG: 89 50 4E 47 0D 0A 1A 0A
-    private static final byte[] PNG_SIGNATURE = new byte[]{
+    private static final byte[] PNG_SIGNATURE = new byte[] {
             (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
     };
 
     // Magic bytes dell'header ZIP: 50 4B 03 04 ("PK\003\004")
-    private static final byte[] ZIP_SIGNATURE = new byte[]{
+    private static final byte[] ZIP_SIGNATURE = new byte[] {
             0x50, 0x4B, 0x03, 0x04
     };
 
@@ -54,11 +58,25 @@ public class SpriteValidator {
             this.haTrasparenza = haTrasparenza;
         }
 
-        public boolean isValido() { return valido; }
-        public String getMessaggio() { return messaggio; }
-        public int getLarghezza() { return larghezza; }
-        public int getAltezza() { return altezza; }
-        public boolean isHaTrasparenza() { return haTrasparenza; }
+        public boolean isValido() {
+            return valido;
+        }
+
+        public String getMessaggio() {
+            return messaggio;
+        }
+
+        public int getLarghezza() {
+            return larghezza;
+        }
+
+        public int getAltezza() {
+            return altezza;
+        }
+
+        public boolean isHaTrasparenza() {
+            return haTrasparenza;
+        }
     }
 
     public static class EsitoCartellaZip {
@@ -102,18 +120,53 @@ public class SpriteValidator {
             this.mainHeight = mainHeight;
         }
 
-        public boolean isValido() { return valido; }
-        public String getMessaggio() { return messaggio; }
-        public String getFolderName() { return folderName; }
-        public String getZipFileName() { return zipFileName; }
-        public Path getZipPath() { return zipPath; }
-        public List<String> getDescrizioniFile() { return descrizioniFile; }
-        public List<Path> getFileEstratti() { return fileEstratti; }
-        public String getFrontFile() { return frontFile; }
-        public String getBackFile() { return backFile; }
-        public String getIconFile() { return iconFile; }
-        public int getMainWidth() { return mainWidth; }
-        public int getMainHeight() { return mainHeight; }
+        public boolean isValido() {
+            return valido;
+        }
+
+        public String getMessaggio() {
+            return messaggio;
+        }
+
+        public String getFolderName() {
+            return folderName;
+        }
+
+        public String getZipFileName() {
+            return zipFileName;
+        }
+
+        public Path getZipPath() {
+            return zipPath;
+        }
+
+        public List<String> getDescrizioniFile() {
+            return descrizioniFile;
+        }
+
+        public List<Path> getFileEstratti() {
+            return fileEstratti;
+        }
+
+        public String getFrontFile() {
+            return frontFile;
+        }
+
+        public String getBackFile() {
+            return backFile;
+        }
+
+        public String getIconFile() {
+            return iconFile;
+        }
+
+        public int getMainWidth() {
+            return mainWidth;
+        }
+
+        public int getMainHeight() {
+            return mainHeight;
+        }
     }
 
     public static boolean isZipFile(byte[] fileBytes, String fileName) {
@@ -132,8 +185,10 @@ public class SpriteValidator {
     }
 
     /**
-     * Riceve un file .ZIP (o un .PNG) inviato su Telegram, estrae tutti gli sprite della cartella
-     * in sprites/<folderName>/, valida ciascun PNG per il 3DS e genera l'archivio completo
+     * Riceve un file .ZIP (o un .PNG) inviato su Telegram, estrae tutti gli sprite
+     * della cartella
+     * in sprites/<folderName>/, valida ciascun PNG per il 3DS e genera l'archivio
+     * completo
      * sprites/<folderName>.zip pronto da mostrare e scaricare.
      */
     public static EsitoCartellaZip elaboraZipOSprite3DS(
@@ -163,7 +218,8 @@ public class SpriteValidator {
                         continue;
                     }
                     String entryName = Path.of(entry.getName()).getFileName().toString();
-                    if (entryName.startsWith(".") || entryName.startsWith("__MACOSX") || !entryName.toLowerCase().endsWith(".png")) {
+                    if (entryName.startsWith(".") || entryName.startsWith("__MACOSX")
+                            || !entryName.toLowerCase().endsWith(".png")) {
                         continue;
                     }
 
@@ -184,12 +240,14 @@ public class SpriteValidator {
 
             if (estratti.isEmpty()) {
                 return new EsitoCartellaZip(false,
-                        "❌ *Archivio ZIP vuoto o privo di file PNG:* L'archivio `" + originalFileName + "` non contiene nessuno sprite `.png` valido.",
+                        "❌ *Archivio ZIP vuoto o privo di file PNG:* L'archivio `" + originalFileName
+                                + "` non contiene nessuno sprite `.png` valido.",
                         targetFolderName, "", null, Collections.emptyList(), Collections.emptyList(),
                         "", "", "", 0, 0);
             }
         } else {
-            // L'utente ha inviato un singolo file PNG: lo validiamo e lo aggiungiamo alla cartella del Pokémon
+            // L'utente ha inviato un singolo file PNG: lo validiamo e lo aggiungiamo alla
+            // cartella del Pokémon
             EsitoValidazione val = validaSprite3DS(fileBytes, originalFileName);
             if (!val.isValido()) {
                 return new EsitoCartellaZip(false, val.getMessaggio(),
@@ -203,19 +261,24 @@ public class SpriteValidator {
             Files.write(savedPng, fileBytes);
         }
 
-        // Scansiona TUTTA la cartella sprites/<targetFolderName>/ e rigenera il file .zip completo
+        // Scansiona TUTTA la cartella sprites/<targetFolderName>/ e rigenera il file
+        // .zip completo
         return impacchettaCartellaSprite(targetFolderName, baseSpritesDir);
     }
 
     /**
-     * Scansiona l'intera cartella sprites/<folderName>/, raccoglie i metadati di tutti i PNG
-     * (front, back, sprite/icona) e crea il file ZIP completo sprites/<folderName>.zip.
+     * Scansiona l'intera cartella sprites/<folderName>/, raccoglie i metadati di
+     * tutti i PNG
+     * (front, back, sprite/icona) e crea il file ZIP completo
+     * sprites/<folderName>.zip.
      */
-    public static EsitoCartellaZip impacchettaCartellaSprite(String folderName, Path baseSpritesDir) throws IOException {
+    public static EsitoCartellaZip impacchettaCartellaSprite(String folderName, Path baseSpritesDir)
+            throws IOException {
         Files.createDirectories(baseSpritesDir);
         Path folderPath = baseSpritesDir.resolve(folderName);
 
-        // Se la cartella locale non esiste ancora, controlliamo se esiste in "../data useful pngs for story/pokemon/sprites/<folderName>"
+        // Se la cartella locale non esiste ancora, controlliamo se esiste in "../data
+        // useful pngs for story/pokemon/sprites/<folderName>"
         if (!Files.isDirectory(folderPath) || isDirEmpty(folderPath)) {
             Path storySpritesFolder = baseSpritesDir.toAbsolutePath().normalize()
                     .resolve("../../data useful pngs for story/pokemon/sprites/" + folderName).normalize();
@@ -297,7 +360,8 @@ public class SpriteValidator {
         StringBuilder msg = new StringBuilder();
         msg.append("✅ *Intera cartella Sprite e archivio ZIP validati!*\n");
         msg.append("• 📦 Archivio ZIP: `").append(zipFileName).append("`\n");
-        msg.append("• 📁 Cartella: `sprites/").append(folderName).append("/` (").append(pngFiles.size()).append(" file)\n");
+        msg.append("• 📁 Cartella: `sprites/").append(folderName).append("/` (").append(pngFiles.size())
+                .append(" file)\n");
         for (String d : descrizioni) {
             msg.append("  • `").append(d).append("`\n");
         }
@@ -314,8 +378,7 @@ public class SpriteValidator {
                 backFile,
                 iconFile,
                 mainW,
-                mainH
-        );
+                mainH);
     }
 
     private static boolean isDirEmpty(Path dir) throws IOException {
@@ -348,7 +411,7 @@ public class SpriteValidator {
             if (fileBytes[i] != PNG_SIGNATURE[i]) {
                 return new EsitoValidazione(false,
                         "❌ *Formato non valido:* Il file `" + fileName + "` non è un PNG o un archivio ZIP valido.\n" +
-                        "Invia un archivio **.ZIP** con l'intera cartella sprite oppure un file **.PNG**.",
+                                "Invia un archivio **.ZIP** con l'intera cartella sprite oppure un file **.PNG**.",
                         0, 0, false);
             }
         }
@@ -373,18 +436,20 @@ public class SpriteValidator {
         int h = img.getHeight();
         boolean hasAlpha = img.getColorModel().hasAlpha();
 
-        // 3. Controllo dimensioni potenze di 2 (32..2048) per sprite singoli (32x32, 64x64, 128x128, 256x256)
+        // 3. Controllo dimensioni potenze di 2 (32..2048) per sprite singoli (32x32,
+        // 64x64, 128x128, 256x256)
         // e spritesheet battaglia 3DS (512x1024 o 1024x2048 griglia 4x8)
         boolean dimensioniValide = isPotenzaDiDueValida3DS(w) && isPotenzaDiDueValida3DS(h)
-                && (w == h || (w == 512 && h == 1024) || (w == 1024 && h == 2048) || (w == 32 && h == 512) || (w == 128 && h == 512));
+                && (w == h || (w == 512 && h == 1024) || (w == 1024 && h == 2048) || (w == 32 && h == 512)
+                        || (w == 128 && h == 512));
 
         if (!dimensioniValide) {
             return new EsitoValidazione(false,
                     String.format(
                             "❌ *Dimensioni non compatibili con 3DS in `%s`:* Rilevato `%dx%d` pixel.\n\n" +
-                            "Dimensioni consentite (potenze di 2):\n" +
-                            "• Sprite / Icona: `32x32`, `64x64`, `128x128` o `256x256` px\n" +
-                            "• Spritesheet battaglia (32 frame 4x8): `512x1024` o `1024x2048` px",
+                                    "Dimensioni consentite (potenze di 2):\n" +
+                                    "• Sprite / Icona: `32x32`, `64x64`, `128x128` o `256x256` px\n" +
+                                    "• Spritesheet battaglia (32 frame 4x8): `512x1024` o `1024x2048` px",
                             fileName, w, h),
                     w, h, hasAlpha);
         }
@@ -393,8 +458,9 @@ public class SpriteValidator {
         if (!hasAlpha) {
             return new EsitoValidazione(false,
                     String.format(
-                            "❌ *Trasparenza mancante (Canale Alpha assente) in `%s`:* Lo sprite `%dx%d` è RGB opaco.\n" +
-                            "Esporta il PNG in modalità **RGBA (32-bit con trasparenza)**!",
+                            "❌ *Trasparenza mancante (Canale Alpha assente) in `%s`:* Lo sprite `%dx%d` è RGB opaco.\n"
+                                    +
+                                    "Esporta il PNG in modalità **RGBA (32-bit con trasparenza)**!",
                             fileName, w, h),
                     w, h, false);
         }

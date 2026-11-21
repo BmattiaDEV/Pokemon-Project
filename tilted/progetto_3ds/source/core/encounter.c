@@ -15,8 +15,9 @@ int encounterGetWildMonIndex(void) {
 static void updateBottomScreen(void) {
     consoleClear();
     if (s_state == GAME_STATE_ENCOUNTER) {
+        const char* mon_name = (s_wildMonIndex == 1) ? "AUREMORA" : "UCCELLO";
         printf("\x1b[11;6H*** WILD POKEMON ENCOUNTER! ***\n");
-        printf("\x1b[13;8HA wild POKEMON appeared!\n");
+        printf("\x1b[13;8HA wild %s appeared!\n", mon_name);
         printf("\x1b[16;10HPress (A) to return...\n");
     } else if (s_movesToEncounter >= 0) {
         printf("\x1b[14;10Hmove to encounter: %d\n", s_movesToEncounter);
@@ -49,7 +50,7 @@ void encounterOnStep(int gx, int gy) {
             s_movesToEncounter--;
             if (s_movesToEncounter <= 0) {
                 s_movesToEncounter = 0;
-                s_wildMonIndex = 0;
+                s_wildMonIndex = rand() % 2; // 50% Uccello (0), 50% Auremora (1)
                 s_state = GAME_STATE_ENCOUNTER;
             }
             updateBottomScreen();

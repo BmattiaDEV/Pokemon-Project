@@ -1,7 +1,7 @@
 dialogue.o: \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/dialogue.c \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/dialogue.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/render/dialogue.c \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/render/dialogue.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/common.h \
  C:/devkitPro/libctru/include/3ds.h \
  C:/devkitPro/libctru/include/3ds/types.h \
  C:/devkitPro/libctru/include/3ds/result.h \
@@ -107,11 +107,11 @@ dialogue.o: \
  C:/devkitPro/libctru/include/c3d/framebuffer.h \
  C:/devkitPro/libctru/include/c3d/renderqueue.h \
  C:/devkitPro/libctru/include/tex3ds.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/npc/npc_texts.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/dialogue_box_t3x.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/ui_font_t3x.h
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/render/dialogue.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h:
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/npc/npc_texts.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/dialogue_box_t3x.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/ui_font_t3x.h
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/render/dialogue.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/common.h:
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
@@ -217,6 +217,6 @@ C:/devkitPro/libctru/include/c3d/fog.h:
 C:/devkitPro/libctru/include/c3d/framebuffer.h:
 C:/devkitPro/libctru/include/c3d/renderqueue.h:
 C:/devkitPro/libctru/include/tex3ds.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/npc/npc_texts.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/dialogue_box_t3x.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/build/ui_font_t3x.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/npc/npc_texts.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/dialogue_box_t3x.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/build/ui_font_t3x.h:

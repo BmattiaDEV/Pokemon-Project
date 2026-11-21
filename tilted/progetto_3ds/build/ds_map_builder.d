@@ -1,8 +1,8 @@
 ds_map_builder.o: \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map_builder.c \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map_internal.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/map/ds_map_builder.c \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/map/ds_map_internal.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/map/ds_map.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/common.h \
  C:/devkitPro/libctru/include/3ds.h \
  C:/devkitPro/libctru/include/3ds/types.h \
  C:/devkitPro/libctru/include/3ds/result.h \
@@ -108,12 +108,12 @@ ds_map_builder.o: \
  C:/devkitPro/libctru/include/c3d/framebuffer.h \
  C:/devkitPro/libctru/include/c3d/renderqueue.h \
  C:/devkitPro/libctru/include/tex3ds.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map_model.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/npc/npc.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/player/player.h
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map_internal.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h:
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/map/ds_map_model.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/npc/npc.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/player/player.h
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/map/ds_map_internal.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/map/ds_map.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/common.h:
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
@@ -219,6 +219,6 @@ C:/devkitPro/libctru/include/c3d/fog.h:
 C:/devkitPro/libctru/include/c3d/framebuffer.h:
 C:/devkitPro/libctru/include/c3d/renderqueue.h:
 C:/devkitPro/libctru/include/tex3ds.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/map/ds_map_model.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/npc/npc.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/player/player.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/map/ds_map_model.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/npc/npc.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/player/player.h:

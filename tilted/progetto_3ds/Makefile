@@ -67,6 +67,7 @@ BINFILES    := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.bin))) \
                player.t3x npcs.t3x dialogue_box.t3x ui_font.t3x \
                flower_overlay.t3x grass_overlay.t3x \
                battle_bg.t3x battle_base_enemy.t3x battle_base_player.t3x uccello_front.t3x uccello_back.t3x \
+               auremora_front_0.t3x auremora_front_1.t3x \
                vshader.shbin $(DS_MAP_TEX)
 
 #---------------------------------------------------------------------------------
@@ -239,6 +240,22 @@ uccello_back.t3x: ../data/uccello_back.png
 	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
 
 uccello_back.t3x.o uccello_back_t3x.h: uccello_back.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+auremora_front_0.t3x: ../data/auremora_front_0.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+auremora_front_0.t3x.o auremora_front_0_t3x.h: auremora_front_0.t3x
+	@echo $(notdir $<)
+	@$(bin2o)
+
+auremora_front_1.t3x: ../data/auremora_front_1.png
+	@echo Converting $(notdir $<) to $@...
+	@$(DEVKITPRO)/tools/bin/tex3ds -f rgba8888 -z auto $< -o $@
+
+auremora_front_1.t3x.o auremora_front_1_t3x.h: auremora_front_1.t3x
 	@echo $(notdir $<)
 	@$(bin2o)
 

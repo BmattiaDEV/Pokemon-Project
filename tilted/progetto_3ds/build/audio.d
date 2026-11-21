@@ -1,7 +1,7 @@
 audio.o: \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/audio.c \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/audio.h \
- C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/audio.c \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/audio.h \
+ C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/common.h \
  C:/devkitPro/libctru/include/3ds.h \
  C:/devkitPro/libctru/include/3ds/types.h \
  C:/devkitPro/libctru/include/3ds/result.h \
@@ -107,8 +107,8 @@ audio.o: \
  C:/devkitPro/libctru/include/c3d/framebuffer.h \
  C:/devkitPro/libctru/include/c3d/renderqueue.h \
  C:/devkitPro/libctru/include/tex3ds.h
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/audio.h:
-C:/Users/matti/Documents/GitHub/Pokemon-Project/tilted/progetto_3ds/source/core/common.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/audio.h:
+C:/GitHub/Terrain_generatio/tilted/progetto_3ds/source/core/common.h:
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
